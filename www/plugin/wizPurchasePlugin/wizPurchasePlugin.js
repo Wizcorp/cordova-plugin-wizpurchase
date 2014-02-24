@@ -1,34 +1,49 @@
-cordova.define("jp.wizcorp.phonegap.plugin.wizPurchasePlugin", function(require, exports, module) {
-
 	var exec = require("cordova/exec");
 	var wizPurchase = {
 	
-	    getProductDetails: function (productIds, s, f) {
-	        if (!productIds) {
+	    getProductDetail: function (productIds, s, f) {
+	        if (!productIds || productIds.length == 0) {
 	            return s({});
 	        }
-	        exec(s, f, "wizPurchasePlugin", "getProductDetails", [ productIds ]);	
+	        if (Object.prototype.toString.call(productIds) === '[object String]') {
+	        	// In the event one productId is passed in as String we shall put it in
+	        	// an array to be easily dealt with natively.
+		        productIds = [ productIds ];
+	        }
+	        exec(s, f, "wizPurchasePlugin", "getProductDetail", [ productIds ]);	
+	    },
+	
+	    canMakePurchase: function(s, f) {
+	        exec(s, f, "wizPurchasePlugin", "canMakePurchase", []);		
 	    },
 	
 	    makePurchase: function(productId, s, f) {
 	        if (!productId) {
-	            return f("ProductId can't be null");
+	            return f("noProductId");
 	        }
-	        exec(s, f, "wizPurchasePlugin", "makePurchase", productId);		
+	        exec(s, f, "wizPurchasePlugin", "makePurchase", [ productId ]);		
 	    },
 	    
 	    consumePurchase: function (receipt, s, f) {
-	        if (!receipt) {
+	        if (!receipt || receipt.length == 0) {
 	            return s();
 	        }
-	
+	        if (Object.prototype.toString.call(receipt) === '[object String]') {
+	        	// In the event one receipt is passed in as String we shall put it in
+	        	// an array to be easily dealt with natively.
+		        receipt = [ receipt ];
+	        }
+	       
 	        exec(s, f, "wizPurchasePlugin", "consumePurchase", [ receipt ]);
 	    },
 	    
-	    getPurchases: function (s, f) {
-	        exec(s, f, "wizPurchasePlugin", "getPurchases", []);
+	    getPending: function (s, f) {
+	        exec(s, f, "wizPurchasePlugin", "getPending", []);
+	    },
+	    
+	    restoreAll: function (s, f) {
+	        exec(s, f, "wizPurchasePlugin", "restoreAll", []);
 	    }
 	};
 
 	module.exports = wizPurchase;
-});
