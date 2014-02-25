@@ -80,7 +80,7 @@ Upon a successful purchase, the user’s purchase data is cached locally by Goog
 ** See security notes below **
 
 - *Return* success with transaction information
-	
+
 		{
 			platform: "ios" or "android",
 			receipt: purchaseToken or ios receipt as String,
@@ -130,26 +130,27 @@ iOS should internally call `[[SKProductsRequest alloc] initWithProductIdentifier
 Android should internally call `queryInventoryAsync()` on the helper class which should call `getSkuDetails()`.
 					
 - *Return* success with Array of product objects
-	
-		[ 
-			{
-				productId: "sword001",
-				name: "Sword of Truths",
-				description: "Very pointy sword. Sword knows if you are lying, so don't lie.",
-				price: 10.00
-			},
-				productId: "shield001",
-				name: "Shield of Peanuts",
-				description: "A shield made entirely of peanuts.",
-				price: 5.00
-			}
-			...  
-		]
 
-or empty `{ }` if no productIds are specified.
+```json
+{
+	"sword001": {
+		"productId": "sword001",
+		"name": "Sword of Truths",
+		"description": "Very pointy sword. Sword knows if you are lying, so don't lie.",
+		"price": 10.15
+	},
+	"shield001": {
+		"productId": "shield001",
+		"name": "Shield of Peanuts",
+		"description": "A shield made entirely of peanuts.",
+		"price": 5.5
+	}
+}
+```
 
-- *Return* failure with error 
-					
+or empty `{ }` if productIds was an empty array.
+
+- *Return* failure with error as the only argument
 	
 
 #### Security notes (Android)
