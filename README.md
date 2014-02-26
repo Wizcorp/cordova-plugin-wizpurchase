@@ -33,6 +33,8 @@ Check to see if the client has puchasing enabled.
 Can detect if rooted iOS device or emulator / simulator etc.
 						
 iOS calls: `[SKPaymentQueue canMakePayments]`
+
+Android calls: `isBillingSupported()` only once on the setup of IAP internally.
 	
 - *Return* (Boolean) value to specify whether the client can make a purchase 
 	
@@ -41,9 +43,9 @@ iOS calls: `[SKPaymentQueue canMakePayments]`
 ** NOTE: All APIs run canMakePurchase() natively (instead of in JS code to prevent any JS hacks) **
 
 
-### getPurchases(Function success, Function failure)
+### restoreAll(Function success, Function failure)
 
-Get a list of non-consumable AND consumable (that have not been consumed) item receipts / tokens 
+Get a list of non-consumable item receipts / purchaseTokens 
 								
 iOS should internally... 
 Check the local database on unconsumed transaction Ids etc.
@@ -105,9 +107,9 @@ On success do a receipt verification (if server API exists) gift the user.
 
 NOTE: Always verify your receipt for auto-renewable subscriptions first with the production URL; proceed to verify with the sandbox URL if you receive a 21007 status code. Following this approach ensures that you do not have to switch between URLs while your application is being tested or reviewed in the sandbox or is live in the App Store.
 			
-### consumePurchase(String transactionId / purchaseId, Function success, Function failure)
+### consumePurchase(String receipt / purchaseToken, Function success, Function failure)
 
-Consume the purchase given an ID (Android purchaseToken | iOS transactionId).
+Consume the purchase given an iOS receipt or Android purchaseToken.
 										
 iOS removes the item from DB.
 					
@@ -121,15 +123,15 @@ Upon a successful purchase, the user’s purchase data is cached locally by Goog
 - *Return* failure with error 
 					
 
-### getProductDetails(Array products)
+### getProductDetail(String productId or Array of productIds)
 
-Get the details for an array of products.
+Get the details for a single productId or for an Array of productIds.
 					
 iOS should internally call `[[SKProductsRequest alloc] initWithProductIdentifiers:productIdentifiers]`
 
 Android should internally call `queryInventoryAsync()` on the helper class which should call `getSkuDetails()`.
 					
-- *Return* success with Array of product objects
+- Return success with Object containing key/value map of products
 
 ```json
 {
@@ -137,13 +139,13 @@ Android should internally call `queryInventoryAsync()` on the helper class which
 		"productId": "sword001",
 		"name": "Sword of Truths",
 		"description": "Very pointy sword. Sword knows if you are lying, so don't lie.",
-		"price": 10.15
+		"price": "Formatted price of the item, including its currency sign."
 	},
 	"shield001": {
 		"productId": "shield001",
 		"name": "Shield of Peanuts",
 		"description": "A shield made entirely of peanuts.",
-		"price": 5.5
+		"price": "Formatted price of the item, including its currency sign."
 	}
 }
 ```
