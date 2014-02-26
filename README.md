@@ -107,7 +107,7 @@ On success do a receipt verification (if server API exists) gift the user.
 
 NOTE: Always verify your receipt for auto-renewable subscriptions first with the production URL; proceed to verify with the sandbox URL if you receive a 21007 status code. Following this approach ensures that you do not have to switch between URLs while your application is being tested or reviewed in the sandbox or is live in the App Store.
 			
-### consumePurchase(String receipt / purchaseToken, Function success, Function failure)
+### consumePurchase(String or Array of receipt / purchaseToken, Function success, Function failure)
 
 Consume the purchase given an iOS receipt or Android purchaseToken.
 										
