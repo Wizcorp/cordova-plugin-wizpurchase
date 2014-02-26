@@ -57,9 +57,9 @@ then `(void)paymentQueueRestoreCompletedTransactionsFinished`
 Android should internally call `Bundle getPurchases()` on IInAppBillingService.aidl Class
 This populates an Inventory object with all purchases ever made except the consumed purchases.
 					
-- *Return* success with Array of puchaseTokens (Android) or receipts (iOS)
+- *Return* success with an Array of one or many puchaseTokens (Android) or receipts (iOS)
 	* e.g. Android
-		`[ "puchase-token-string", ... ] }` 
+		`[ "puchase-token-string", ... ]` 
 		
 - *Return* failure with error 
 
