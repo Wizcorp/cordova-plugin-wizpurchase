@@ -7,41 +7,30 @@ A cross-platform mobile application payment API for iOS IAP and Android Billing.
 
 ** NOTE: Not currently supporting subscriptions **
 
+## JavaScript APIs
 
-## Private (Native APIs)
+### getPending(Function success, Function failure)
 
-### init( )
+This method for iOS fetches any pending verification products (which have not been consumed yet).
 
-Intialisation method. Sets up any transaction requirements or delegates, toggles logging in debug mode
-					
-iOS should create `PGSKPaymentTransactionObserver` on `self` and `retain`.
-Then add that observer to the previously created transaction observer:
-`[[SKPaymentQueue defaultQueue] addTransactionObserver:observer];`
-Finally setup SQLite DB for storing transaction receipts (mark for cloud backup in docs dir?)
+This method for Android fetches any pending consumption products.
 
+- *Return* success with an Array of one or more Objects containing product information that can be used when consuming or verification.
+	e.g.
 
-	
-Android should init a Google IAP helper class (Provides convenience methods for in-app billing.)
-with an encoded public key (This is used for verification of purchase signatures. 
-You can find your app's base64-encoded public key in your application's page on 
-Google Play Developer Console.).
+		[
+			{
+				platform: "ios" or "android",
+				receipt: purchaseToken or ios receipt as String,
+				productId: "sword001",
+				packageName: "jp.wizcorp.game"
+			},
+			{
+				...
+			} ...
+		]
 
-### canPurchase( )
-
-Check to see if the client has puchasing enabled.
-
-Can detect if rooted iOS device or emulator / simulator etc.
-						
-iOS calls: `[SKPaymentQueue canMakePayments]`
-
-Android calls: `isBillingSupported()` only once on the setup of IAP internally.
-	
-- *Return* (Boolean) value to specify whether the client can make a purchase 
-	
-## Public (JavaScript APIs)
-
-** NOTE: All APIs run canMakePurchase() natively (instead of in JS code to prevent any JS hacks) **
-
+- *Return* failure with error 
 
 ### restoreAll(Function success, Function failure)
 
@@ -107,11 +96,11 @@ On success do a receipt verification (if server API exists) gift the user.
 
 NOTE: Always verify your receipt for auto-renewable subscriptions first with the production URL; proceed to verify with the sandbox URL if you receive a 21007 status code. Following this approach ensures that you do not have to switch between URLs while your application is being tested or reviewed in the sandbox or is live in the App Store.
 			
-### consumePurchase(String or Array of receipt / purchaseToken, Function success, Function failure)
+### consumePurchase(String or Array of productIds, Function success, Function failure)
 
-Consume the purchase given an iOS receipt or Android purchaseToken.
+Consume the product for the purchaseId given.
 										
-iOS removes the item from DB.
+iOS removes the item from it's local data store.
 					
 Android internally calls `int consumePurchase()` on IInAppBillingService.aidl Class
 		
