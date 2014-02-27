@@ -234,10 +234,17 @@
         WizLog(@"Products found: %i", [response.products count]);
         for (SKProduct *obj in response.products) {
             // Build a detailed product list from the list of valid products
+            
+            // Fromat the price
+            NSNumberFormatter *numberFormatter = [[NSNumberFormatter alloc] init];
+            [numberFormatter setFormatterBehavior:NSNumberFormatterBehavior10_4];
+            [numberFormatter setNumberStyle:NSNumberFormatterCurrencyStyle];
+            [numberFormatter setLocale:obj.priceLocale];
+            NSString *formattedPrice = [numberFormatter stringFromNumber:obj.price];
+            
             product = @{
                 @"name":        obj.localizedTitle,
-                @"price":       obj.price,
-                @"priceLocale": obj.priceLocale.localeIdentifier,
+                @"price":       formattedPrice,
                 @"description": obj.localizedDescription
             };
             
