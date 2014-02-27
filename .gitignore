@@ -19,3 +19,14 @@ DerivedData
 
 #CocoaPods
 Pods
+
+# Android Studio
+.idea/
+bin/
+gen/
+*.iml
+*.iws
+out/
+local.properties
+log
+proguard/
