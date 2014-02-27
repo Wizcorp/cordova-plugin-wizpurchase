@@ -7,43 +7,34 @@ A cross-platform mobile application payment API for iOS IAP and Android Billing.
 
 ** NOTE: Not currently supporting subscriptions **
 
+## JavaScript APIs
 
-## Private (Native APIs)
+### getPending(Function success, Function failure)
 
-### init( )
+This method for iOS fetches any pending verification products (which have not been consumed yet).
 
-Intialisation method. Sets up any transaction requirements or delegates, toggles logging in debug mode
-					
-iOS should create `PGSKPaymentTransactionObserver` on `self` and `retain`.
-Then add that observer to the previously created transaction observer:
-`[[SKPaymentQueue defaultQueue] addTransactionObserver:observer];`
-Finally setup SQLite DB for storing transaction receipts (mark for cloud backup in docs dir?)
+This method for Android fetches any pending consumption products.
 
+- *Return* success with an Array of one or more Objects containing product information that can be used when consuming or verification.
+	e.g.
 
-	
-Android should init a Google IAP helper class (Provides convenience methods for in-app billing.)
-with an encoded public key (This is used for verification of purchase signatures. 
-You can find your app's base64-encoded public key in your application's page on 
-Google Play Developer Console.).
+		[
+			{
+				platform: "ios" or "android",
+				receipt: purchaseToken or ios receipt as String,
+				productId: "sword001",
+				packageName: "jp.wizcorp.game"
+			},
+			{
+				...
+			} ...
+		]
 
-### canPurchase( )
+- *Return* failure with error 
 
-Check to see if the client has puchasing enabled.
+### restoreAll(Function success, Function failure)
 
-Can detect if rooted iOS device or emulator / simulator etc.
-						
-iOS calls: `[SKPaymentQueue canMakePayments]`
-	
-- *Return* (Boolean) value to specify whether the client can make a purchase 
-	
-## Public (JavaScript APIs)
-
-** NOTE: All APIs run canMakePurchase() natively (instead of in JS code to prevent any JS hacks) **
-
-
-### getPurchases(Function success, Function failure)
-
-Get a list of non-consumable AND consumable (that have not been consumed) item receipts / tokens 
+Get a list of non-consumable item receipts / purchaseTokens 
 								
 iOS should internally... 
 Check the local database on unconsumed transaction Ids etc.
@@ -55,9 +46,9 @@ then `(void)paymentQueueRestoreCompletedTransactionsFinished`
 Android should internally call `Bundle getPurchases()` on IInAppBillingService.aidl Class
 This populates an Inventory object with all purchases ever made except the consumed purchases.
 					
-- *Return* success with Array of puchaseTokens (Android) or receipts (iOS)
+- *Return* success with an Array of one or many puchaseTokens (Android) or receipts (iOS)
 	* e.g. Android
-		`[ "puchase-token-string", ... ] }` 
+		`[ "puchase-token-string", ... ]` 
 		
 - *Return* failure with error 
 
@@ -80,7 +71,7 @@ Upon a successful purchase, the user’s purchase data is cached locally by Goog
 ** See security notes below **
 
 - *Return* success with transaction information
-	
+
 		{
 			platform: "ios" or "android",
 			receipt: purchaseToken or ios receipt as String,
@@ -105,11 +96,11 @@ On success do a receipt verification (if server API exists) gift the user.
 
 NOTE: Always verify your receipt for auto-renewable subscriptions first with the production URL; proceed to verify with the sandbox URL if you receive a 21007 status code. Following this approach ensures that you do not have to switch between URLs while your application is being tested or reviewed in the sandbox or is live in the App Store.
 			
-### consumePurchase(String transactionId / purchaseId, Function success, Function failure)
+### consumePurchase(String or Array of productIds, Function success, Function failure)
 
-Consume the purchase given an ID (Android purchaseToken | iOS transactionId).
+Consume the product for the purchaseId given.
 										
-iOS removes the item from DB.
+iOS removes the item from it's local data store.
 					
 Android internally calls `int consumePurchase()` on IInAppBillingService.aidl Class
 		
@@ -121,35 +112,36 @@ Upon a successful purchase, the user’s purchase data is cached locally by Goog
 - *Return* failure with error 
 					
 
-### getProductDetails(Array products)
+### getProductDetail(String productId or Array of productIds)
 
-Get the details for an array of products.
+Get the details for a single productId or for an Array of productIds.
 					
 iOS should internally call `[[SKProductsRequest alloc] initWithProductIdentifiers:productIdentifiers]`
 
 Android should internally call `queryInventoryAsync()` on the helper class which should call `getSkuDetails()`.
 					
-- *Return* success with Array of product objects
-	
-		{ 
-			"sword001": {
-				name: "Sword of Truths",
-				description: "Very pointy sword. Sword knows if you are lying, so don't lie.",
-				price: 10.00
-			},
-			"shield001": {
-				name: "Shield of Peanuts",
-				description: "A shield made entirely of peanuts.",
-				price: 5.00
-			}
-			...  
-		}
+- Return success with Object containing key/value map of products
 
-or empty `{ }` if no productIds are specified.
+```json
+{
+	"sword001": {
+		"productId": "sword001",
+		"name": "Sword of Truths",
+		"description": "Very pointy sword. Sword knows if you are lying, so don't lie.",
+		"price": "Formatted price of the item, including its currency sign."
+	},
+	"shield001": {
+		"productId": "shield001",
+		"name": "Shield of Peanuts",
+		"description": "A shield made entirely of peanuts.",
+		"price": "Formatted price of the item, including its currency sign."
+	}
+}
+```
 
-- *Return* failure with error 
-					
-	
+or empty `{ }` if productIds was an empty array.
+
+- *Return* failure with error as the only argument
 
 #### Security notes (Android)
 
