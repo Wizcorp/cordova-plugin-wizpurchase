@@ -100,7 +100,7 @@ On success do a receipt verification (if server API exists) gift the user.
 
 |  iOS Verification API |
 | --------- |:--------:| ------:|
-|  Base64 encode the receipt and create a JSON object as follows: `{ "receipt-data" : "receipt bytes here" }`  |
+|  Base64 encode the receipt and create a JSON object as follows: `{ "receipt-data" : "receipt bytes here" }`  | | |
 | **POST**  | https://buy.itunes.apple.com/verifyReceipt | JSON is returned. If the value of the `status` key is 0, this is a valid receipt. |
 
 NOTE: Always verify your receipt for auto-renewable subscriptions first with the production URL; proceed to verify with the sandbox URL if you receive a 21007 status code. Following this approach ensures that you do not have to switch between URLs while your application is being tested or reviewed in the sandbox or is live in the App Store.
@@ -131,20 +131,19 @@ Android should internally call `queryInventoryAsync()` on the helper class which
 					
 - *Return* success with Array of product objects
 	
-		[ 
-			{
-				productId: "sword001",
+		{ 
+			"sword001": {
 				name: "Sword of Truths",
 				description: "Very pointy sword. Sword knows if you are lying, so don't lie.",
 				price: 10.00
 			},
-				productId: "shield001",
+			"shield001": {
 				name: "Shield of Peanuts",
 				description: "A shield made entirely of peanuts.",
 				price: 5.00
 			}
 			...  
-		]
+		}
 
 or empty `{ }` if no productIds are specified.
 
