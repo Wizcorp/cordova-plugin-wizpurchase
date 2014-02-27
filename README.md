@@ -3,8 +3,6 @@ phonegap-plugin-wizPurchase
 
 A cross-platform mobile application payment API for iOS IAP and Android Billing. 
 
-# [API is Draft]
-
 ** NOTE: Not currently supporting subscriptions **
 
 ## JavaScript APIs
@@ -37,7 +35,7 @@ This method for Android fetches any pending consumption products.
 Get a list of non-consumable item receipts / purchaseTokens 
 								
 iOS should internally... 
-Check the local database on unconsumed transaction Ids etc.
+Check the call the code below return any owned non consumables etc.
 				
 `[[SKPaymentQueue defaultQueue] addTransactionObserver:self];`
 `[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];`		
@@ -86,13 +84,17 @@ On success do a receipt verification (if server API exists) gift the user.
 |  Android Verification API |
 | --------- |:--------:| ------:|
 |  URIs relative to *https://www.googleapis.com/androidpublisher/v1.1/applications*, unless otherwise note |
-| **GET**  | /**[packageName]**/inapp/**[productId]**/purchases/**[token]** | Checks the purchase and consumption status of an inapp item. |
+| **GET**  |
+| / **[packageName]**/inapp/**[productId]**/purchases/**[token]** |
+| Checks the purchase and consumption status of an inapp item. |
 	
 
 |  iOS Verification API |
 | --------- |:--------:| ------:|
-|  Base64 encode the receipt and create a JSON object as follows: `{ "receipt-data" : "receipt bytes here" }`  | | |
-| **POST**  | https://buy.itunes.apple.com/verifyReceipt | JSON is returned. If the value of the `status` key is 0, this is a valid receipt. |
+|  Base64 encode the receipt and create a JSON object as follows: `{ "receipt-data" : "receipt bytes here" }`  
+| **POST**  |
+| https://buy.itunes.apple.com/verifyReceipt |
+| JSON is returned. If the value of the `status` key is 0, this is a valid receipt. |
 
 NOTE: Always verify your receipt for auto-renewable subscriptions first with the production URL; proceed to verify with the sandbox URL if you receive a 21007 status code. Following this approach ensures that you do not have to switch between URLs while your application is being tested or reviewed in the sandbox or is live in the App Store.
 			
