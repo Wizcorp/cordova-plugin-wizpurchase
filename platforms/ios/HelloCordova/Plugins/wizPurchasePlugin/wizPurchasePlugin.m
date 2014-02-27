@@ -57,11 +57,11 @@
 }
 
 - (void)consumePurchase:(CDVInvokedUrlCommand *)command {
-    // Remove any receipt(s) from NSUserDefaults, we have verified with a server
-    NSArray *receipts = [command.arguments objectAtIndex:0];
-    for (NSString *reciept in receipts) {
+    // Remove any receipt(s) from NSUserDefaults matching productIds, we have verified with a server
+    NSArray *productIds = [command.arguments objectAtIndex:0];
+    for (NSString *productId in productIds) {
         // Remove receipt from storage
-        [self removeReciept:reciept];
+        [self removeReceipt:productId];
     }
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
@@ -101,7 +101,6 @@
             [self fetchProducts:@[ productId ]];
         }
     }];
-    
 }
 
 - (void)fetchProducts:(NSArray *)productIdentifiers {
@@ -130,23 +129,30 @@
     }
 }
 
-- (void)removeReciept:(NSString *)receipt {
-    WizLog(@"Removing receipt");
+- (void)removeReceipt:(NSString *)productId {
+    WizLog(@"Removing receipt for productId");
 #if USE_ICLOUD_STORAGE
     NSUbiquitousKeyValueStore *storage = [NSUbiquitousKeyValueStore defaultStore];
 #else
     NSUserDefaults *storage = [NSUserDefaults standardUserDefaults];
 #endif
 
-    NSMutableArray *savedReceipts = [storage objectForKey:@"receipts"];
+    NSMutableArray *savedReceipts = [[NSMutableArray alloc] initWithArray:[storage objectForKey:@"receipts"]];
     if (savedReceipts) {
-        // Remove receipt
-        [savedReceipts removeObject:receipt];
-        [storage synchronize];
+        for (int i = 0; i < [savedReceipts count]; i++) {
+            if ([[[NSDictionary dictionaryWithDictionary:[savedReceipts objectAtIndex:i]] objectForKey:@"productId"] isEqualToString:productId]) {
+                // Remove receipt with matching productId
+                [savedReceipts removeObject:[savedReceipts objectAtIndex:i]];
+                // Remove old receipt array and switch for new one
+                [storage removeObjectForKey:@"receipts"];
+                [storage setObject:savedReceipts forKey:@"receipts"];
+                [storage synchronize];
+            }
+        }
     }
 }
 
-- (void)backupReceipt:(NSString *)receipt {
+- (void)backupReceipt:(NSDictionary *)result {
     WizLog(@"Backing up receipt");
 #if USE_ICLOUD_STORAGE
     NSUbiquitousKeyValueStore *storage = [NSUbiquitousKeyValueStore defaultStore];
@@ -157,10 +163,10 @@
     NSArray *savedReceipts = [storage arrayForKey:@"receipts"];
     if (!savedReceipts) {
         // Storing the first receipt
-        [storage setObject:@[receipt] forKey:@"receipts"];
+        [storage setObject:@[result] forKey:@"receipts"];
     } else {
         // Adding another receipt
-        NSArray *updatedReceipts = [savedReceipts arrayByAddingObject:receipt];
+        NSArray *updatedReceipts = [savedReceipts arrayByAddingObject:result];
         [storage setObject:updatedReceipts forKey:@"receipts"];
     }
     [storage synchronize];
@@ -294,16 +300,19 @@
                 // Immediately save to NSUserDefaults incase we cannot reach JavaScript in time
                 // or connection for server receipt verification is interupted
                 NSString *receipt = [[NSString alloc] initWithData:[transaction transactionReceipt] encoding:NSUTF8StringEncoding];
-                [self backupReceipt:receipt];
+                
+                // We requested this payment let's finish
+                NSDictionary *result = @{
+                     @"platform": @"ios",
+                     @"receipt": receipt,
+                     @"productId": transaction.payment.productIdentifier,
+                     @"packageName": [[NSBundle mainBundle] bundleIdentifier]
+                };
+                
+                [self backupReceipt:result];
 
                 if (makePurchaseCb) {
-                    // We requested this payment let's finish
-                    NSDictionary *result = @{
-                         @"platform": @"ios",
-                         @"receipt": receipt,
-                         @"productId": transaction.payment.productIdentifier,
-                         @"packageName": @"default"
-                    };
+                   
                     // Return result to JavaScript
                     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
                                                                   messageAsDictionary:result];
@@ -326,12 +335,19 @@
                 }
                 break;
                 
-			case SKPaymentTransactionStateRestored:
+			case SKPaymentTransactionStateRestored: {
                 // We restored some non-consumable transactions add to receipt backup
 				WizLog(@"SKPaymentTransactionStateRestored");
-				[self backupReceipt:[[NSString alloc] initWithData:[transaction transactionReceipt] encoding:NSUTF8StringEncoding]];
+                NSString *receipt = [[NSString alloc] initWithData:[transaction transactionReceipt] encoding:NSUTF8StringEncoding];
+                NSDictionary *result = @{
+                     @"platform": @"ios",
+                     @"receipt": receipt,
+                     @"productId": transaction.payment.productIdentifier,
+                     @"packageName": [[NSBundle mainBundle] bundleIdentifier]
+                };
+				[self backupReceipt:result];
                 break;
-                
+            }
             default:
 				WizLog(@"SKPaymentTransactionStateInvalid");
                 if (makePurchaseCb) {
