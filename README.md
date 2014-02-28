@@ -46,6 +46,10 @@ Be sure to use a real device (not emulator).
 
 Make sure the version number of your application is the same as the version number you uploaded to the Google Play Developer Console. 
 
+## Purchase Flow
+
+![image](purchase_flow.gif)
+
 ## JavaScript APIs
 
 ### getPending(Function success, Function failure)
