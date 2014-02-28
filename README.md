@@ -24,27 +24,27 @@ A cross-platform mobile application payment API for iOS IAP and Android Billing.
 
 #### iOS
 
-In iTunes Connect create: your application, any items and an IAP test user (on the main screen see "Manage Users"). 
+- In iTunes Connect create: your application, any items and an IAP test user (on the main screen see "Manage Users"). 
 
-Test on a real device (not simulator).
+- Test on a real device (not simulator).
 
-Log out of any existing Apple iTunes accounts on the device before testing.
+- Log out of any existing Apple iTunes accounts on the device before testing.
 
-Mank sure your application has a version number (do not leave it blank).
+- Make sure your application has a version number (do not leave it blank).
 
 #### Android
 
-Add your Billing Key to `res/values/billing_key.xml` (this can be found in the Google Play Developer Console).
+- Add your Billing Key to `res/values/billing_key.xml` (this can be found in the Google Play Developer Console).
 
-Set `debuggable` to `false` and upload a signed version of you application to the Google Play Developer Console.
+- Set `debuggable` to `false` and upload a signed version of you application to the Google Play Developer Console.
 
-Add items to the Google Play Developer Console.
+- Add items to the Google Play Developer Console.
 
-Be sure you are logged in to a Google Developer Account on your device.
+- Be sure you are logged in to a Google Developer Account on your device.
 
-Be sure to use a real device (not emulator).
+- Be sure to use a real device (not emulator).
 
-Make sure the version number of your application is the same as the version number you uploaded to the Google Play Developer Console. 
+- Make sure the version number of your application is the same as the version number you uploaded to the Google Play Developer Console. 
 
 ## Purchase Flow
 
