@@ -28,7 +28,7 @@ import com.smartmobilesoftware.util.IabResult;
 import com.smartmobilesoftware.util.Inventory;
 import com.smartmobilesoftware.util.SkuDetails;
 
-public class wizPurchasePlugin extends CordovaPlugin {
+public class WizPurchasePlugin extends CordovaPlugin {
 
     public static final String TAG = "WizPurchase";
     private String base64EncodedPublicKey;

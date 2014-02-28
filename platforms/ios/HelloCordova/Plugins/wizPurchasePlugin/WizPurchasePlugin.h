@@ -10,7 +10,7 @@
 #import <StoreKit/StoreKit.h>
 #import <Cordova/CDVPlugin.h>
 
-@interface wizPurchasePlugin : CDVPlugin <SKProductsRequestDelegate, SKPaymentTransactionObserver> {
+@interface WizPurchasePlugin : CDVPlugin <SKProductsRequestDelegate, SKPaymentTransactionObserver> {
     SKProductsResponse *productsResponse;
     NSString *getProductDetailsCb;
     NSString *makePurchaseCb;

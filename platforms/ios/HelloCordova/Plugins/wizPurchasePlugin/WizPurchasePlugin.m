@@ -6,10 +6,10 @@
  *
  */
 
-#import "wizPurchasePlugin.h"
+#import "WizPurchasePlugin.h"
 #import "WizDebugLog.h"
 
-@implementation wizPurchasePlugin
+@implementation WizPurchasePlugin
 
 - (CDVPlugin *)initWithWebView:(UIWebView *)theWebView {
 

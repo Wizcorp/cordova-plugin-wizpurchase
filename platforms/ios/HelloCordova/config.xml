@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <widget id="io.cordova.hellocordova" version="0.0.1" xmlns="http://www.w3.org/ns/widgets" xmlns:cdv="http://cordova.apache.org/ns/1.0">
 	<feature name="wizPurchasePlugin">
-        <param name="ios-package" value="wizPurchasePlugin" />
+        <param name="ios-package" value="WizPurchasePlugin" />
         <param name="onload" value="true" />
     </feature>
     <preference name="AllowInlineMediaPlayback" value="false" />
