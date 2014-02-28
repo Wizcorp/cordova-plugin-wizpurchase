@@ -3,9 +3,48 @@ phonegap-plugin-wizPurchase
 
 A cross-platform mobile application payment API for iOS IAP and Android Billing. 
 
-# [API is Draft]
+- PhoneGap Version : 3.3
+- last update : 28/02/2014
 
 ** NOTE: Not currently supporting subscriptions **
+
+***A lot of work from the Android side of this plugin must be credited to @[poiuytrez](https://github.com/poiuytrez)'s [AndroidInAppBilling](https://github.com/poiuytrez/AndroidInAppBilling/) plugin. We re-used some plugin class code and all the utility classes, but replaced a lot of the API to be usable in a cross-platform manner with iOS. Many thanks goes to him for his hard work.***
+
+## Install (with Plugman)
+
+	cordova plugin add https://github.com/aogilvie/phonegap-plugin-wizPurchase
+	cordova build
+	
+	< or >
+	
+	phonegap local plugin add https://github.com/aogilvie/phonegap-plugin-wizPurchase
+	phonegap build
+
+## Setup
+
+#### iOS
+
+In iTunes Connect create: your application, any items and an IAP test user (on the main screen see "Manage Users"). 
+
+Test on a real device (not simulator).
+
+Log out of any existing Apple iTunes accounts on the device before testing.
+
+Mank sure your application has a version number (do not leave it blank).
+
+#### Android
+
+Add your Billing Key to `res/values/billing_key.xml` (this can be found in the Google Play Developer Console).
+
+Set `debuggable` to `false` and upload a signed version of you application to the Google Play Developer Console.
+
+Add items to the Google Play Developer Console.
+
+Be sure you are logged in to a Google Developer Account on your device.
+
+Be sure to use a real device (not emulator).
+
+Make sure the version number of your application is the same as the version number you uploaded to the Google Play Developer Console. 
 
 ## JavaScript APIs
 
