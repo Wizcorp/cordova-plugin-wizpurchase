@@ -194,6 +194,20 @@ or empty `{ }` if productIds was an empty array.
 
 *** You (the developer) should verify that the orderId is a unique value that you have not previously processed, and the developerPayload string matches the token that you sent previously with the purchase request. As a further security precaution, you should perform the verification on your own secure server. ***
 	
+### Error Handling
+
+Failure callbacks return an error as String. See the following error table:
+
+|Error String|Description|
+|:----------:|---------|
+|cannotPurchase		|Purchasing is not possible for the following reasons; <br /> - purchase is being made on a simulator or emulator, <br /> - the device has been identified as rooted. |
+|invalidClient		| Indicates that the client is not allowed to perform the attempted action. |
+|userCancelled		| Indicates that the user cancelled a payment request. |
+|invalidPayment		| Indicates that one of the payment parameters was not recognized.|
+|unauthorized		| Indicates that the user is not allowed to authorise payments (e.g. parental lock).|
+|unknownProductId	| Indicates that the requested product is not available or could not be found in the store. |
+|alreadyOwned		| [Android only] This item has already been bought. It cannot be bought again without consuming it first. |
+
 ======
 Ref Links
 ======
