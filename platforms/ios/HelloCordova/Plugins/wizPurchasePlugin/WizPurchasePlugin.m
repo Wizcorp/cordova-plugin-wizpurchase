@@ -31,7 +31,7 @@
         if ([self canMakePurchase]) {
             pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
         } else {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR];
+            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"unknownProductId"];
         }
         [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
     }];
@@ -189,7 +189,7 @@
             }
             // We have requested at least one invalid product fallout here for security
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                              messageAsString:@"invalidProductId"];
+                                                              messageAsString:@"unknownProductId"];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
             makePurchaseCb = NULL;
             return;
@@ -205,7 +205,7 @@
         }
         
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                          messageAsString:@"productNotFound"];
+                                                          messageAsString:@"unknownProductId"];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
         makePurchaseCb = NULL;
     }
@@ -219,7 +219,7 @@
             }
             // We have requested at least one invalid product fallout here for security
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                          messageAsString:@"invalidProductId"];
+                                                          messageAsString:@"unknownProductId"];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:getProductDetailsCb];
             getProductDetailsCb = NULL;
             return;
@@ -282,9 +282,11 @@
 
 - (void)paymentQueue:(SKPaymentQueue *)queue restoreCompletedTransactionsFailedWithError:(NSError *)error {
     if (restorePurchaseCb != NULL) {
+        // Convert error code to String
+        NSString *errorString = [self returnErrorString:error];
         // Return result to JavaScript
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                          messageAsInt:error.code];
+                                                          messageAsString:errorString];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:restorePurchaseCb];
         restorePurchaseCb = NULL;
     }
@@ -336,7 +338,7 @@
                 if (makePurchaseCb) {
                     // Return result to JavaScript
                     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                                      messageAsString:[NSString stringWithFormat:@"SKPaymentTransactionStateFailed: %@", error]];
+                                                                      messageAsString:[self returnErrorString:transaction.error]];
                     [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
                     makePurchaseCb = NULL;
                 }
@@ -360,7 +362,7 @@
                 if (makePurchaseCb) {
                     // Return result to JavaScript
                     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                                      messageAsString:[NSString stringWithFormat:@"SKPaymentTransactionStateInvalid: %@", error]];
+                                                                      messageAsString:[self returnErrorString:transaction.error]];
                     [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
                     makePurchaseCb = NULL;
                 }
@@ -373,6 +375,44 @@
         // Your app needs to finish every transaction, regardles of whether the transaction succeeded or failed.
 		[[SKPaymentQueue defaultQueue] finishTransaction:transaction];
     }
+}
+
+- (NSString *)returnErrorString:(NSError *)error {
+    // Default error SKErrorUnknown
+    NSString *errorString = @"unknownError";
+    // Indicates that an unknown or unexpected error occurred.
+    if ([error.domain isEqualToString:@"SKErrorDomain"]) {
+        switch (error.code) {
+            case 1:
+                // SKErrorClientInvalid
+                // Indicates that the client is not allowed to perform the attempted action.
+                errorString = @"invalidClient";
+                break;
+            case 2:
+                // SKErrorPaymentCancelled
+                // Indicates that the user cancelled a payment request.
+                errorString = @"userCancelled";
+                break;
+            case 3:
+                // SKErrorPaymentInvalid
+                // Indicates that one of the payment parameters was not recognized by the Apple App Store.
+                errorString = @"invalidPayment";
+                break;
+            case 4:
+                // SKErrorPaymentNotAllowed
+                // Indicates that the user is not allowed to authorise payments.
+                errorString = @"unauthorized";
+                break;
+            case 5:
+                // SKErrorStoreProductNotAvailable
+                // Indicates that the requested product is not available in the store.
+                errorString = @"unknownProductId";
+                break;
+            default:
+                break;
+        }
+    }
+    return errorString;
 }
 
 @end

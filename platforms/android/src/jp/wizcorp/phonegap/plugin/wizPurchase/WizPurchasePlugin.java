@@ -20,6 +20,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 
 import com.smartmobilesoftware.util.Purchase;
@@ -32,7 +33,8 @@ public class WizPurchasePlugin extends CordovaPlugin {
 
     public static final String TAG = "WizPurchase";
     private String base64EncodedPublicKey;
-
+    private List<String> requestDetailSkus;
+    
     // (arbitrary) request code for the purchase flow
     static final int RC_REQUEST = 10001;
     
@@ -140,9 +142,9 @@ public class WizPurchasePlugin extends CordovaPlugin {
         } else if (action.equalsIgnoreCase("getProductDetail")) {
     		// Populate productId list
         	JSONArray jsonSkuList = new JSONArray(args.getString(0));
-    		final List<String> sku = new ArrayList<String>();
+    		requestDetailSkus = new ArrayList<String>();
     		for (int i = 0; i < jsonSkuList.length(); i++) {
-    			sku.add(jsonSkuList.get(i).toString());
+    			requestDetailSkus.add(jsonSkuList.get(i).toString());
 			}
     		// Retain callback and wait
     		productDetailCbContext = callbackContext;
@@ -151,12 +153,12 @@ public class WizPurchasePlugin extends CordovaPlugin {
     		productDetailCbContext.sendPluginResult(result);
     		
         	if (myInventory != null) {
-            	getProductDetails(sku);
+            	getProductDetails(requestDetailSkus);
 	    	} else {
 	    		// Initialize
 	        	cordova.getThreadPool().execute(new Runnable() {
 	                public void run() {
-	                	init(sku);
+	                	init(requestDetailSkus);
 	                }
 	            });
 	    	}
@@ -381,29 +383,50 @@ public class WizPurchasePlugin extends CordovaPlugin {
             Log.d(TAG, "Inside mGotDetailsListener");
             if (!hasErrorsAndUpdateInventory(result, inventory)) { }
 
-            Log.d(TAG, "Query details was successful.");
+            Log.d(TAG, "Query details was successful." + result.toString());
 
             if (productDetailCbContext != null) {
-
+            	
 	            List<SkuDetails>skuList = inventory.getAllProducts();
 	            
-	            // Convert the java list to JSON
+	            // If we request a sku that was not returned in the skuList..
+	            // (remember we can request 1 or more skus..)
+	            // then technically we callback with error as a requested sku
+	            // was wrong or not setup in the Google Play Developer Console.
+	            // We can only paint half a shop, which is useless.
+	            
+	            // Iterate over the requestDetailSkus and check we have info for each
+	            Iterator<String> requestSkuIter = requestDetailSkus.iterator();
+	            Boolean missingSku = false;
+	            // JSON Object for return
 	            JSONObject skusObject = new JSONObject();
 	            
-	            try {
-	                for (SkuDetails sku : skuList) {
-	                    Log.d(TAG, "SKUDetails: Title: " + sku.getTitle());
-	                    
-	                	JSONObject skuObject = new JSONObject();
-	                    skuObject.put("productId", sku.getSku());
-	                    skuObject.put("price", sku.getPrice());
-	                    skuObject.put("description", sku.getDescription());
-	                    skuObject.put("name", sku.getTitle());
-	                    skusObject.put(sku.getSku(), skuObject);
-	                }
-	            } catch (JSONException e) {}
+	            while (requestSkuIter.hasNext()) {
+	            	for (SkuDetails sku : skuList) {
+		            	if (!sku.getSku().equalsIgnoreCase(requestSkuIter.next()) ) {
+		            		missingSku = true;
+		            		break;
+		            	} else {
+		            		// Build up the return Object
+		            		Log.d(TAG, "SKUDetails: Title: " + sku.getTitle());
+		                    
+		                	JSONObject skuObject = new JSONObject();
+		                    try {
+								skuObject.put("productId", sku.getSku());
+			                    skuObject.put("price", sku.getPrice());
+			                    skuObject.put("description", sku.getDescription());
+			                    skuObject.put("name", sku.getTitle());
+			                    skusObject.put(sku.getSku(), skuObject);
+		                    } catch (JSONException e) { }		            		
+	            		}
+	            	}
+	            }            
             
-            	productDetailCbContext.success(skusObject);
+	            if (missingSku) {
+	            	productDetailCbContext.error("unknownProductId");
+	            } else {
+	            	productDetailCbContext.success(skusObject);
+	            }
             	productDetailCbContext = null;
             }
         }
@@ -422,8 +445,7 @@ public class WizPurchasePlugin extends CordovaPlugin {
         }
 
         // Update the inventory
-        myInventory = inventory;
-        
+        myInventory = inventory;        
         return false;
     }
     
@@ -432,19 +454,9 @@ public class WizPurchasePlugin extends CordovaPlugin {
         public void onIabPurchaseFinished(IabResult result, Purchase purchase) {
             Log.d(TAG, "Purchase finished: " + result + ", purchase: " + purchase);
 
-            if (makePurchaseCbContext != null) {         
-            	
+            if (makePurchaseCbContext != null) {  
                 if (result.isFailure()) {
-                	String errMsg = "unknownError";
-                	switch (result.getResponse()) {
-                		case -1005:
-                			errMsg = "userCancelled";
-                            break;
-                		case 7:
-                			errMsg = "alreadyOwned";
-                            break;
-                	}
-                	
+                	String errMsg = returnErrorString(result.getResponse());
                 	makePurchaseCbContext.error(errMsg);
                 	makePurchaseCbContext = null;
                 	return;
@@ -494,15 +506,15 @@ public class WizPurchasePlugin extends CordovaPlugin {
                 
                 if (consumeCbContext != null) {
      	 			consumeCbContext.success();
-     	 			consumeCbContext = null;
      			}
                 
             } else {
             	if (consumeCbContext != null) {
-     	 			consumeCbContext.error("Error while consuming: " + result);
-     	 			consumeCbContext = null;
+            		String errorMsg = returnErrorString(result.getResponse());
+     	 			consumeCbContext.error(errorMsg);
      			}
             }
+	 		consumeCbContext = null;
         }
     };
     
@@ -535,5 +547,73 @@ public class WizPurchasePlugin extends CordovaPlugin {
          */
         
         return true;
+    }
+    
+    // Error convertor helper
+    private String returnErrorString(int error) {
+    	
+    	/*        
+    	String[] iab_msgs = ("0:OK/1:User Canceled/2:Unknown/" +
+            "3:Billing Unavailable/4:Item unavailable/" +
+            "5:Developer Error6:Error/7:Item Already Owned/" +
+            "8:Item not owned").split("/");
+        String[] iabhelper_msgs = ("0:OK/-1001:Remote exception during initialization/" +
+			"-1002:Bad response received/" +
+			"-1003:Purchase signature verification failed/" +
+			"-1004:Send intent failed/" +
+			"-1005:User cancelled/" +
+			"-1006:Unknown purchase response/" +
+			"-1007:Missing token/" +
+			"-1008:Unknown error/" +
+			"-1009:Subscriptions not available/" +
+			"-1010:Invalid consumption attempt").split("/");
+    	 */
+    	
+    	String errMsg = "unknownError";
+    	switch (error) {
+        	case -1001:
+    			errMsg = "userCancelled";
+                break;
+        	case -1002:
+    			errMsg = "userCancelled";
+                break;
+        	case -1003:
+    			errMsg = "userCancelled";
+                break;
+        	case -1004:
+    			errMsg = "userCancelled";
+                break;
+    		case -1005:
+    			errMsg = "userCancelled";
+                break;
+    		case -1006:
+    			errMsg = "invalidPurchase";
+                break;
+    		case -1007:
+    			errMsg = "unauthorized";
+                break;
+    		case -1008:
+    			errMsg = "unknownError";
+                break;
+    		case 1:
+    			errMsg = "userCancelled";
+                break;
+    		case 3:
+    			errMsg = "cannotPurchase";
+                break;
+    		case 4:
+    			errMsg = "unknownProductId";
+                break;
+    		case 5:
+    			errMsg = "unknownError";
+                break;
+    		case 6:
+    			errMsg = "invalidPurchase";
+    			break;
+    		case 7:
+    			errMsg = "alreadyOwned";
+                break;
+    	}
+		return errMsg;
     }
 }
