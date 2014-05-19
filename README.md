@@ -159,7 +159,7 @@ Upon a successful purchase, the user’s purchase data is cached locally by Goog
 - *Return* failure with error 
 					
 
-### getProductDetail(String productId or Array of productIds)
+### getProductDetail(String productId or Array of productIds, Function success, Function failure)
 
 Get the details for a single productId or for an Array of productIds.
 					
