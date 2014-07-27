@@ -35,6 +35,9 @@ public class WizPurchasePlugin extends CordovaPlugin {
     private String base64EncodedPublicKey;
     private List<String> requestDetailSkus;
     
+    // DeveloperPayload instance
+    private String mDevPayload;
+    
     // (arbitrary) request code for the purchase flow
     static final int RC_REQUEST = 10001;
     
@@ -171,6 +174,7 @@ public class WizPurchasePlugin extends CordovaPlugin {
     		makePurchaseCbContext.sendPluginResult(result);
     		
 	    	final String productId = args.getString(0);
+	    	mDevPayload = args.optString(1);
 
     		if (myInventory != null) {
     	    	// Set up the activity result callback to this class
@@ -287,14 +291,8 @@ public class WizPurchasePlugin extends CordovaPlugin {
  	
  	// Buy an item
  	private void buy(final String sku) {
- 		/* TODO: for security, generate your payload here for verification. See the comments on 
-         *        verifyDeveloperPayload() for more info. Since this is a sample, we just use 
-         *        an empty string, but on a production application you should generate this. 
-         */
- 		final String payload = "";
-
  		mHelper.launchPurchaseFlow(cordova.getActivity(), sku, RC_REQUEST, 
-                 mPurchaseFinishedListener, payload);
+                 mPurchaseFinishedListener, mDevPayload);
  	}
  	
  	// Consume a purchase
@@ -505,14 +503,6 @@ public class WizPurchasePlugin extends CordovaPlugin {
             	} catch (JSONException e) { }
             	makePurchaseCbContext = null;
             }
-
-            /*
-            if (!verifyDeveloperPayload(purchase)) {
-            	Log.d(TAG, "cannot verifiy purchase");
-            	// TODO: callbackContext.error("Error purchasing. Authenticity verification failed.");
-                return;
-            }
-            */
             // Add the purchase to the inventory
             myInventory.addPurchase(purchase);
             
@@ -548,37 +538,6 @@ public class WizPurchasePlugin extends CordovaPlugin {
 	 		consumeCbContext = null;
         }
     };
-    
-    /** Verifies the developer payload of a purchase. */
-    boolean verifyDeveloperPayload(Purchase p) {
-        @SuppressWarnings("unused")
-		String payload = p.getDeveloperPayload();
-        
-        /*
-         * TODO: verify that the developer payload of the purchase is correct. It will be
-         * the same one that you sent when initiating the purchase.
-         * 
-         * WARNING: Locally generating a random string when starting a purchase and 
-         * verifying it here might seem like a good approach, but this will fail in the 
-         * case where the user purchases an item on one device and then uses your app on 
-         * a different device, because on the other device you will not have access to the
-         * random string you originally generated.
-         *
-         * So a good developer payload has these characteristics:
-         * 
-         * 1. If two different users purchase an item, the payload is different between them,
-         *    so that one user's purchase can't be replayed to another user.
-         * 
-         * 2. The payload must be such that you can verify it even when the application wasn't the
-         *    one who initiated the purchase flow (so that items purchased by the user on 
-         *    one device work on other devices owned by the user).
-         * 
-         * Using your own server to store and verify developer payloads across application
-         * installations is recommended.
-         */
-        
-        return true;
-    }
     
     // Error convertor helper
     private String returnErrorString(int error) {
