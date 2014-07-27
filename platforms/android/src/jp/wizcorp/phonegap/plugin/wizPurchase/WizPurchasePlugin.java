@@ -379,9 +379,13 @@ public class WizPurchasePlugin extends CordovaPlugin {
                         // Create return Object
                         JSONObject pendingObject = new JSONObject();
                         pendingObject.putOpt("platform", "android");
-                        pendingObject.putOpt("receipt", skuObject.getString("purchaseToken"));
+                        pendingObject.putOpt("orderId", skuObject.getString("orderId"));
                         pendingObject.putOpt("packageName", skuObject.getString("packageName"));
                         pendingObject.putOpt("productId", skuObject.getString("productId"));
+                        pendingObject.putOpt("purchaseTime", skuObject.getString("purchaseTime"));
+                        pendingObject.putOpt("purchaseState", skuObject.getString("purchaseState"));
+                        pendingObject.putOpt("developerPayload", skuObject.getString("developerPayload"));
+                        pendingObject.putOpt("receipt", skuObject.getString("purchaseToken"));
 
                         // Add new object into array
                         skuList.put(pendingObject);
