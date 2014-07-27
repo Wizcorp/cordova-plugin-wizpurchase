@@ -299,20 +299,38 @@ public class WizPurchasePlugin extends CordovaPlugin {
  	
  	// Consume a purchase
  	private void consumePurchase(JSONArray data) throws JSONException{
- 		JSONArray sku = data.getJSONArray(0);
-        Log.d(TAG, "fetching item: " + sku.getString(0));
- 		// Get the purchase from the inventory
- 		Purchase purchase = myInventory.getPurchase(sku.getString(0));
-        Log.d(TAG, "purchase is: " + purchase.toString());
- 		if (purchase != null) {
- 			// Consume it
- 			mHelper.consumeAsync(purchase, mConsumeFinishedListener);
- 		} else {
- 			if (consumeCbContext != null) {
- 	 			consumeCbContext.error("notConsumable");
- 	 			consumeCbContext = null;
- 			}
- 		}
+ 		// Returning Error Message
+		String errorMsg = "";
+		
+ 		// Iterate the given Array of skus
+		for (int i = 0; i < data.length(); i++) {
+			// Instance the current sku to be consumed
+			String sku = data.getString(i);
+			// Skip invalid skus
+			if (sku == "" || sku == null) continue;
+	        Log.d(TAG, "fetching item: " + sku);
+	 		// Get the purchase from the inventory
+	 		Purchase purchase = myInventory.getPurchase(sku);
+			// Check if we actually have a purchase to consume
+	        if (purchase != null) {
+	            Log.d(TAG, "purchase is: " + purchase.toString());
+	            // Process the consumption asynchronously
+	            mHelper.consumeAsync(purchase, mConsumeFinishedListener);              
+	        } else {
+	        	// Check if we already have an error and add the separator for handle a split later on
+	        	// TODO: Can the sku contain "."? if so a different separator would be needed
+	        	if(errorMsg.length()>0) errorMsg += ".";
+	        	// Add the current sku to the returning error string
+	        	errorMsg += "Sku: "+sku+" was not consumable";
+	        } 		
+		}
+		// Check if we need to process an Error Listener
+        if (consumeCbContext != null) {
+        	// If we have errors send the error to the listener
+            if (errorMsg.length()>0) consumeCbContext.error(errorMsg);
+            // Clean the listener instance
+            consumeCbContext = null;
+        }
  	}
  	
  	// Get the list of purchases
