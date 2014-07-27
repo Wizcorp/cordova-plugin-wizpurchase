@@ -467,6 +467,8 @@ public class WizPurchasePlugin extends CordovaPlugin {
             	JSONObject purchaseResult = new JSONObject();
             	try {
 					purchaseResult.put("platform", "android");
+					purchaseResult.put("orderId", purchase.getOrderId());
+					purchaseResult.put("developerPayload", purchase.getDeveloperPayload());
 					purchaseResult.put("receipt", purchase.getToken());
 					purchaseResult.put("productId", purchase.getSku());
 					purchaseResult.put("packageName", cordova.getActivity().getPackageName());
