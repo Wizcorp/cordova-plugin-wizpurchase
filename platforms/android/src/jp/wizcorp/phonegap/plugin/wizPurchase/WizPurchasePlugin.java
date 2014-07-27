@@ -399,35 +399,37 @@ public class WizPurchasePlugin extends CordovaPlugin {
     IabHelper.QueryInventoryFinishedListener mGotDetailsListener = new IabHelper.QueryInventoryFinishedListener() {
         public void onQueryInventoryFinished(IabResult result, Inventory inventory) {
             Log.d(TAG, "Inside mGotDetailsListener");
+            // Here incorrect Request are already handle and the failure is already dispatched.
             if (!hasErrorsAndUpdateInventory(result, inventory)) { }
 
             Log.d(TAG, "Query details was successful." + result.toString());
-
+            // Check if we have an handler
             if (productDetailCbContext != null) {
             	
-	            List<SkuDetails>skuList = inventory.getAllProducts();
-	            
-	            // If we request a sku that was not returned in the skuList..
-	            // (remember we can request 1 or more skus..)
-	            // then technically we callback with error as a requested sku
-	            // was wrong or not setup in the Google Play Developer Console.
-	            // We can only paint half a shop, which is useless.
+            	// We will gather here any wrong sku and log it out later.
+            	String wrongSku = "";
+            	// Line separator instance
+            	String newline = System.getProperty("line.separator");
+            	
+            	// Get the returned list of SkuDetails from Google API.
+            	// This it is the Full Developer Inventory, regardless the incorrect skus in our query
+            	List<SkuDetails>skuList = inventory.getAllProducts();
 	            
 	            // Iterate over the requestDetailSkus and check we have info for each
 	            Iterator<String> requestSkuIter = requestDetailSkus.iterator();
-	            Boolean missingSku = false;
 	            // JSON Object for return
 	            JSONObject skusObject = new JSONObject();
 	            
 	            while (requestSkuIter.hasNext()) {
 	            	for (SkuDetails sku : skuList) {
 		            	if (!sku.getSku().equalsIgnoreCase(requestSkuIter.next()) ) {
-		            		missingSku = true;
-		            		break;
+		            		// If we already have invalid skus add a new line
+		            		if (wrongSku.length()>0)wrongSku += newline;
+		            		// Add the incorrect sku to our list
+		            		wrongSku += "sku not found in Google Inventory: "+sku;
 		            	} else {
-		            		// Build up the return Object
 		            		Log.d(TAG, "SKUDetails: Title: " + sku.getTitle());
-		                    
+		            		// Build up the return Object
 		                	JSONObject skuObject = new JSONObject();
 		                    try {
 								skuObject.put("productId", sku.getSku());
@@ -436,16 +438,20 @@ public class WizPurchasePlugin extends CordovaPlugin {
 			                    skuObject.put("name", sku.getTitle());
 			                    skuObject.put("json", sku.toJson());
 			                    skusObject.put(sku.getSku(), skuObject);
-		                    } catch (JSONException e) { }		            		
+		                    } catch (JSONException e) { }
 	            		}
 	            	}
-	            }            
-            
-	            if (missingSku) {
-	            	productDetailCbContext.error("unknownProductId");
-	            } else {
-	            	productDetailCbContext.success(skusObject);
 	            }
+	            // If we have wrong sku log it out for the developer, this should be enough otherwise a return object should be issue
+        		if (wrongSku.length()>0){
+            		Log.d(TAG, "One or more Sku were not found in Google Inventory");
+            		Log.d(TAG, wrongSku);
+        		}
+	            
+            	// At this point return the success for all we got (even an empty Inventory)
+	            // All what we found in here is all the sku who actually does exist in the developer inventory
+	            // If something is missing the developer will refine his query
+	            productDetailCbContext.success(skusObject);
             	productDetailCbContext = null;
             }
         }
