@@ -402,7 +402,7 @@ public class WizPurchasePlugin extends CordovaPlugin {
 	        } else {
 	        	// Check if we already have an error and add the separator for handle a split later on
 	        	// TODO: Can the sku contain "."? if so a different separator would be needed
-	        	if(errorMsg.length()>0) errorMsg += ".";
+	        	if(!errorMsg.isEmpty()) errorMsg += ".";
 	        	// Add the current sku to the returning error string
 	        	errorMsg += "Sku: "+sku+" was not consumable";
 	        } 		
@@ -410,7 +410,7 @@ public class WizPurchasePlugin extends CordovaPlugin {
 		// Check if we need to process an Error Listener
         if (mConsumeCbContext != null) {
         	// If we have errors send the error to the listener
-            if (errorMsg.length()>0) mConsumeCbContext.error(errorMsg);
+            if (!errorMsg.isEmpty()) mConsumeCbContext.error(errorMsg);
             // Clean the listener instance
             mConsumeCbContext = null;
         }
@@ -530,7 +530,7 @@ public class WizPurchasePlugin extends CordovaPlugin {
 	            	for (SkuDetails sku : skuList) {
 		            	if (!sku.getSku().equalsIgnoreCase(requestSkuIter.next()) ) {
 		            		// If we already have invalid skus add a new line
-		            		if (wrongSku.length()>0)wrongSku += newline;
+		            		if (!wrongSku.isEmpty())wrongSku += newline;
 		            		// Add the incorrect sku to our list
 		            		wrongSku += "sku not found in Google Inventory: "+sku;
 		            	} else {
@@ -551,7 +551,7 @@ public class WizPurchasePlugin extends CordovaPlugin {
 	            	}
 	            }
 	            // If we have wrong sku log it out for the developer, this should be enough otherwise a return object should be issue
-        		if (wrongSku.length()>0){
+        		if (!wrongSku.isEmpty()){
             		Log.d(TAG, "One or more Sku were not found in Google Inventory");
             		Log.d(TAG, wrongSku);
         		}
