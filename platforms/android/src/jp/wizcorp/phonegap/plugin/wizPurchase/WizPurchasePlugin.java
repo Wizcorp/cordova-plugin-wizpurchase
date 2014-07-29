@@ -390,7 +390,8 @@ public class WizPurchasePlugin extends CordovaPlugin {
 			// Instance the current sku to be consumed
 			String sku = data.getString(i);
 			// Skip invalid skus
-			if (sku.isEmpty()) continue;
+			if (sku == null) continue;
+			if (sku == "") continue;
 	        Log.d(TAG, "fetching item: " + sku);
 	 		// Get the purchase from the inventory
 	 		Purchase purchase = mInventory.getPurchase(sku);
