@@ -53,7 +53,7 @@
 	    </config-file>
 	    
 	    <!-- Plugin Class -->
-	    <source-file src="platforms/android/src/jp/wizcorp/phonegap/plugin/wizPurchase/wizPurchasePlugin.java"
+	    <source-file src="platforms/android/src/jp/wizcorp/phonegap/plugin/wizPurchase/WizPurchasePlugin.java"
 	            target-dir="src/jp/wizcorp/phonegap/plugin/wizPurchase"/>
 	            
 	    <!-- Billing Helper Classes -->
