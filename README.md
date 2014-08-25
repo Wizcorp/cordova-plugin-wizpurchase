@@ -4,7 +4,6 @@ phonegap-plugin-wizPurchase
 A cross-platform mobile application payment API for iOS IAP and Android Billing. 
 
 - PhoneGap Version : 3.3
-- last update : 28/02/2014
 
 ** NOTE: Not currently supporting subscriptions **
 
@@ -12,12 +11,12 @@ A cross-platform mobile application payment API for iOS IAP and Android Billing.
 
 ## Install (with Plugman)
 
-	cordova plugin add https://github.com/aogilvie/phonegap-plugin-wizPurchase
+	cordova plugin add https://github.com/wizcorp/phonegap-plugin-wizPurchase
 	cordova build
 	
 	< or >
 	
-	phonegap local plugin add https://github.com/aogilvie/phonegap-plugin-wizPurchase
+	phonegap local plugin add https://github.com/wizcorp/phonegap-plugin-wizPurchase
 	phonegap build
 
 ## Setup
