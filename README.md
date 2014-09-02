@@ -39,11 +39,16 @@ A cross-platform mobile application payment API for iOS IAP and Android Billing.
 
 - Add items to the Google Play Developer Console.
 
+- Upload your apk to Alpha or Beta environment.
+
+- Add your list of test users (Google Group), in the same screen you should see a link ** *1 **
+
+- ** *1 download the application from the link above [important!] **
+
 - Be sure you are logged in to a Google Developer Account on your device.
 
 - Be sure to use a real device (not emulator).
 
-- Make sure the version number of your application is the same as the version number you uploaded to the Google Play Developer Console. 
 
 ## Purchase Flow
 
