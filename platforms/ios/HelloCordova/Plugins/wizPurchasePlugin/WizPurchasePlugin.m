@@ -262,14 +262,19 @@
 
 - (void)paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue {
     if (restorePurchaseCb != NULL) {
-        NSArray *receipts;
+        NSMutableArray *receipts = [[NSMutableArray alloc] init];
         if ([[[SKPaymentQueue defaultQueue] transactions] count] > 0) {
             for (SKPaymentTransaction *transaction in [[SKPaymentQueue defaultQueue] transactions]) {
+                NSString *receipt = [[NSString alloc] initWithData:[transaction transactionReceipt] encoding:NSUTF8StringEncoding];
+                NSDictionary *result = @{
+                     @"platform": @"ios",
+                     @"receipt": receipt,
+                     @"productId": transaction.payment.productIdentifier,
+                     @"packageName": [[NSBundle mainBundle] bundleIdentifier]
+                };
                 // Build array of restored receipt items
-                [receipts arrayByAddingObject:[transaction transactionReceipt]];
+                [receipts addObject:result];
             }
-        } else {
-            receipts = [[NSArray alloc] init];
         }
 
         // Return result to JavaScript
@@ -313,6 +318,7 @@
                 // We requested this payment let's finish
                 NSDictionary *result = @{
                      @"platform": @"ios",
+                     @"orderId": transaction.transactionIdentifier,
                      @"receipt": receipt,
                      @"productId": transaction.payment.productIdentifier,
                      @"packageName": [[NSBundle mainBundle] bundleIdentifier]
@@ -350,6 +356,7 @@
                 NSString *receipt = [[NSString alloc] initWithData:[transaction transactionReceipt] encoding:NSUTF8StringEncoding];
                 NSDictionary *result = @{
                      @"platform": @"ios",
+                     @"orderId": transaction.transactionIdentifier,
                      @"receipt": receipt,
                      @"productId": transaction.payment.productIdentifier,
                      @"packageName": [[NSBundle mainBundle] bundleIdentifier]
