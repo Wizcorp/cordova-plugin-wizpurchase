@@ -68,6 +68,7 @@ This method for Android fetches any pending consumption products.
 		[
 			{
 				platform: "ios" or "android",
+				orderId: transaction identifier for iOS or order id for Android,
 				receipt: purchaseToken or ios receipt as String,
 				productId: "sword001",
 				packageName: "jp.wizcorp.game"
@@ -121,6 +122,7 @@ Upon a successful purchase, the user’s purchase data is cached locally by Goog
 
 		{
 			platform: "ios" or "android",
+			orderId: transaction identifier for iOS or order id for Android,
 			receipt: purchaseToken or ios receipt as String,
 			productId: "sword001",
 			packageName: "jp.wizcorp.game"
