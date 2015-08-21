@@ -318,6 +318,7 @@
                 // We requested this payment let's finish
                 NSDictionary *result = @{
                      @"platform": @"ios",
+                     @"orderId": transaction.transactionIdentifier,
                      @"receipt": receipt,
                      @"productId": transaction.payment.productIdentifier,
                      @"packageName": [[NSBundle mainBundle] bundleIdentifier]
@@ -355,6 +356,7 @@
                 NSString *receipt = [[NSString alloc] initWithData:[transaction transactionReceipt] encoding:NSUTF8StringEncoding];
                 NSDictionary *result = @{
                      @"platform": @"ios",
+                     @"orderId": transaction.transactionIdentifier,
                      @"receipt": receipt,
                      @"productId": transaction.payment.productIdentifier,
                      @"packageName": [[NSBundle mainBundle] bundleIdentifier]
