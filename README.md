@@ -173,21 +173,27 @@ iOS should internally call `[[SKProductsRequest alloc] initWithProductIdentifier
 
 Android should internally call `queryInventoryAsync()` on the helper class which should call `getSkuDetails()`.
 					
-- Return success with Object containing key/value map of products
+- Return success with Object containing country, currency code and key/value map of products
+
+NB: Currently on Android the country code can not be guessed and as such, it is not returned.
 
 ```json
 {
-	"sword001": {
-		"productId": "sword001",
-		"name": "Sword of Truths",
-		"description": "Very pointy sword. Sword knows if you are lying, so don't lie.",
-		"price": "Formatted price of the item, including its currency sign."
-	},
-	"shield001": {
-		"productId": "shield001",
-		"name": "Shield of Peanuts",
-		"description": "A shield made entirely of peanuts.",
-		"price": "Formatted price of the item, including its currency sign."
+	"country": "GB",
+	"currency": "GBP",
+	"products": {
+		"sword001": {
+			"productId": "sword001",
+			"name": "Sword of Truths",
+			"description": "Very pointy sword. Sword knows if you are lying, so don't lie.",
+			"price": "Formatted price of the item, including its currency sign."
+		},
+		"shield001": {
+			"productId": "shield001",
+			"name": "Shield of Peanuts",
+			"description": "A shield made entirely of peanuts.",
+			"price": "Formatted price of the item, including its currency sign."
+		}
 	}
 }
 ```

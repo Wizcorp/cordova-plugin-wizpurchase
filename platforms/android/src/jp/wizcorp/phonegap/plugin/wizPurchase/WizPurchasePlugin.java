@@ -511,6 +511,7 @@ public class WizPurchasePlugin extends CordovaPlugin {
 
 				// Build the return Object
 				JSONObject skusObject = new JSONObject();
+				String storeCurrency = null;
 
 				Log.d(TAG, "skuList: " + skuList);
 				if (skuList != null && !skuList.isEmpty()) {
@@ -526,6 +527,13 @@ public class WizPurchasePlugin extends CordovaPlugin {
 								// Add the incorrect sku to our list
 								wrongSku += "sku not found in Google Inventory: " + sku;
 							} else {
+								if (storeCurrency == null) {
+									try {
+										JSONObject jsonSku = sku.toJson();
+										storeCurrency = jsonSku.getString("price_currency_code");
+									} catch (JSONException e) {
+									}
+								}
 								// Build the sku details object
 								JSONObject skuObject = new JSONObject();
 								try {
@@ -551,7 +559,16 @@ public class WizPurchasePlugin extends CordovaPlugin {
 				// At this point return the success for all we got (even an empty Inventory)
 				// All what we found in here is all the sku who actually does exist in the developer inventory
 				// If something is missing the developer will refine his query
-				mProductDetailCbContext.success(skusObject);
+				JSONObject callbackResult = new JSONObject();
+				try {
+					callbackResult.put("currency", storeCurrency);
+					callbackResult.put("products", skusObject);
+				} catch (JSONException e) {
+					PluginResult cr = new PluginResult(PluginResult.Status.JSON_EXCEPTION);
+					mProductDetailCbContext.sendPluginResult(cr);
+				} finally {
+					mProductDetailCbContext.success(callbackResult);
+				}
 				mProductDetailCbContext = null;
 			}
 		}

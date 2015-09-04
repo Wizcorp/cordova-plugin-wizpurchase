@@ -232,6 +232,8 @@
         NSDictionary *product = NULL;
         NSMutableDictionary *productsDictionary = [[NSMutableDictionary alloc] init];
         WizLog(@"Products found: %i", [response.products count]);
+        NSString *storeCountry = NULL;
+        NSString *storeCurrency = NULL;
         for (SKProduct *obj in response.products) {
             // Build a detailed product list from the list of valid products
             
@@ -242,6 +244,11 @@
             [numberFormatter setLocale:obj.priceLocale];
             NSString *formattedPrice = [numberFormatter stringFromNumber:obj.price];
             
+            if (storeCountry == NULL || storeCurrency == NULL) {
+                storeCountry = (NSString *)CFLocaleGetValue((CFLocaleRef)obj.priceLocale, kCFLocaleCountryCode);
+                storeCurrency = [numberFormatter currencyCode];
+            }
+
             product = @{
                 @"name":        obj.localizedTitle,
                 @"price":       formattedPrice,
@@ -251,8 +258,13 @@
             [productsDictionary setObject:product forKey:obj.productIdentifier];
         }
         
+        NSDictionary *result = @{
+                                 @"country":    storeCountry,
+                                 @"currency":   storeCurrency,
+                                 @"products":   productsDictionary
+                                 };
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                      messageAsDictionary:productsDictionary];
+                                                      messageAsDictionary:result];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:getProductDetailsCb];
         getProductDetailsCb = NULL;
     }
