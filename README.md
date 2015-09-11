@@ -187,12 +187,14 @@ NB: Currently on Android the country code can not be guessed and as such, it is 
 			"name": "Sword of Truths",
 			"description": "Very pointy sword. Sword knows if you are lying, so don't lie.",
 			"price": "Formatted price of the item, including its currency sign."
+			"priceMicros": "Price in micro-units, where 1,000,000 micro-units equal one unit of the currency."
 		},
 		"shield001": {
 			"productId": "shield001",
 			"name": "Shield of Peanuts",
 			"description": "A shield made entirely of peanuts.",
 			"price": "Formatted price of the item, including its currency sign."
+			"priceMicros": "Price in micro-units, where 1,000,000 micro-units equal one unit of the currency."
 		}
 	}
 }

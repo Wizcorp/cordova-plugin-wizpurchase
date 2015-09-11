@@ -540,6 +540,7 @@ public class WizPurchasePlugin extends CordovaPlugin {
 									// Fill the sku details
 									skuObject.put("productId", sku.getSku());
 									skuObject.put("price", sku.getPrice());
+									skuObject.put("priceMicros", sku.getPriceMicros());
 									skuObject.put("description", sku.getDescription());
 									skuObject.put("name", sku.getTitle());
 									skuObject.put("json", sku.toJson());

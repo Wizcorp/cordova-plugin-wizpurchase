@@ -252,6 +252,7 @@
             product = @{
                 @"name":        obj.localizedTitle,
                 @"price":       formattedPrice,
+                @"priceMicros": [[obj.price decimalNumberByMultiplyingByPowerOf10:6] stringValue],
                 @"description": obj.localizedDescription
             };
             
