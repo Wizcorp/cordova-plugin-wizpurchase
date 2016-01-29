@@ -2,6 +2,7 @@ package jp.wizcorp.phonegap.plugin.wizPurchase;
 
 //Android Includes
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.util.Log;
 
 //Cordova Includes
@@ -31,10 +32,10 @@ import com.smartmobilesoftware.util.SkuDetails;
 /**
  * WizPurchasePlugin Plug-in
  *
- * @author		Ally Ogilvie
- * @copyright		Wizcorp Inc. [ Incorporated Wizards ] 2014
- * @file		WizPurchase.java
- * @about		In-App-Billing Cordova Plug-in.
+ * @author     Ally Ogilvie
+ * @copyright  Wizcorp Inc. [ Incorporated Wizards ] 2014
+ * @file       WizPurchase.java
+ * @about      In-App-Billing Cordova Plug-in.
  */
 public class WizPurchasePlugin extends CordovaPlugin {
 
@@ -59,7 +60,37 @@ public class WizPurchasePlugin extends CordovaPlugin {
 	CallbackContext mProductDetailCbContext;
 	CallbackContext mMakePurchaseCbContext;
 	CallbackContext mGetPendingCbContext;
-	CallbackContext mConsumeCbContext;
+	CallbackContext mFinishPurchaseCbContext;
+
+	// Name of SharedPreferences where we store purchases' pending state
+	public static final String PENDING_PURCHASES_CACHE_NAME = "WizPurchasePendingPurchases";
+
+	private static final int NO_ERROR = 0;
+	private static final int UNKNOWN_ERROR = 1;
+	private static final int ARGS_TYPE_MISMATCH = 2;
+	private static final int ARGS_ARITY_MISMATCH = 3;
+	private static final int IOS_VERSION_ERR = 4;
+	private static final int INVALID_RECEIPT = 5;
+	private static final int INVALID_TRANSACTION_STATE = 6;
+	private static final int PURCHASE_NOT_FOUND = 7;
+	private static final int PURCHASE_NOT_PENDING = 8;
+	private static final int REMOTE_EXCEPTION = 9;
+	private static final int BAD_RESPONSE= 10;
+	private static final int BAD_SIGNATURE= 11;
+	private static final int SEND_INTENT_FAILED = 12;
+	private static final int USER_CANCELLED = 13;
+	private static final int INVALID_PURCHASE = 14;
+	private static final int MISSING_TOKEN = 15;
+	private static final int NO_SUBSCRIPTIONS = 16;
+	private static final int INVALID_CONSUMPTION = 17;
+	private static final int CANNOT_PURCHASE = 18;
+	private static final int UNKNOWN_PRODUCT_ID = 19;
+	private static final int ALREADY_OWNED = 20;
+	private static final int NOT_OWNED = 21;
+	private static final int INVALID_CLIENT = 22;
+	private static final int INVALID_PAYMENT = 23;
+	private static final int UNAUTHORIZED = 24;
+	private static final int RECEIPT_REFRESH_FAILED = 25;
 
 	// =================================================================================================
 	//	Override Plugin Methods
@@ -121,28 +152,26 @@ public class WizPurchasePlugin extends CordovaPlugin {
 		Log.d(TAG, "Plugin execute called with action: " + action);
 
 		// Reset all handlers
-		mRestoreAllCbContext	= null;
-		mProductDetailCbContext	= null;
-		mMakePurchaseCbContext	= null;
-		mGetPendingCbContext	= null;
-		mConsumeCbContext		= null;
+		mRestoreAllCbContext     = null;
+		mProductDetailCbContext  = null;
+		mMakePurchaseCbContext   = null;
+		mGetPendingCbContext     = null;
+		mFinishPurchaseCbContext = null;
 
-		if (action.equalsIgnoreCase("getPending")) {
-			mGetPendingCbContext = callbackContext;
-			action = "restoreAll";
-		}
-
-		if (action.equalsIgnoreCase("restoreAll")) {
-			restoreAll(callbackContext);
+		if (action.equalsIgnoreCase("getPendingPurchases")) {
+			getPendingPurchases(callbackContext);
 			return true;
-		} else if (action.equalsIgnoreCase("getProductDetail")) {
+		} else if (action.equalsIgnoreCase("restoreAllPurchases")) {
+			restoreAllPurchases(callbackContext);
+			return true;
+		} else if (action.equalsIgnoreCase("getProductDetails")) {
 			getProductsDetails(args, callbackContext);
 			return true;
 		} else if (action.equalsIgnoreCase("makePurchase")) {
 			makePurchase(args, callbackContext);
 			return true;
-		} else if (action.equalsIgnoreCase("consumePurchase")) {
-			consumePurchase(args, callbackContext);
+		} else if (action.equalsIgnoreCase("finishPurchase")) {
+			finishPurchase(args, callbackContext);
 			return true;
 		}
 		return false;
@@ -153,11 +182,38 @@ public class WizPurchasePlugin extends CordovaPlugin {
 	// =================================================================================================
 
 	/**
+	 * Get a list of purchases which have not been ended yet using finishPurchase
+	 *
+	 * @param callbackContext Instance
+	 **/
+	private void getPendingPurchases(CallbackContext callbackContext) throws JSONException {
+		// Check if the Inventory is available
+		if (mInventory != null) {
+			// Get and return any previously purchased Items
+			JSONArray jsonPurchaseList = new JSONArray();
+			jsonPurchaseList = getPendingPurchases();
+			// Return result
+			callbackContext.success(jsonPurchaseList);
+		} else {
+			// Initialise the Plug-In
+			cordova.getThreadPool().execute(new Runnable() {
+				public void run() {
+					List<String> skus = new ArrayList<String>();
+					init(skus);
+				}
+			});
+			// Retain the callback and wait
+			mGetPendingCbContext = callbackContext;
+			retainCallBack(mGetPendingCbContext);
+		}
+	}
+
+	/**
 	 * Restore all Inventory products and purchases
 	 *
 	 * @param callbackContext Instance
 	 **/
-	private void restoreAll(CallbackContext callbackContext) throws JSONException {
+	private void restoreAllPurchases(CallbackContext callbackContext) throws JSONException {
 		// Check if the Inventory is available
 		if (mInventory != null) {
 			// Get and return any previously purchased Items
@@ -249,20 +305,20 @@ public class WizPurchasePlugin extends CordovaPlugin {
 	}
 
 	/**
-	 * Consume the Purchase
+	 * Finish the Purchase
 	 *
-	 * @param args Product Id to be purchased and DeveloperPayload
+	 * @param args Product id of the purchase to be finished and if it is consumable
 	 * @param callbackContext Instance
 	 **/
-	private void consumePurchase(JSONArray args, CallbackContext callbackContext) throws JSONException {
+	private void finishPurchase(JSONArray args, CallbackContext callbackContext) throws JSONException {
 		// Retain the callback and wait
-		mConsumeCbContext = callbackContext;
-		retainCallBack(mConsumeCbContext);
+		mFinishPurchaseCbContext = callbackContext;
+		retainCallBack(mFinishPurchaseCbContext);
 
 		// Check if the Inventory is available
 		if (mInventory != null) {
-			// Consume product
-			consumePurchase(args);
+			// Finish product
+			finishPurchase(args);
 		} else {
 			// Initialise the Plug-In
 			cordova.getThreadPool().execute(new Runnable() {
@@ -308,19 +364,19 @@ public class WizPurchasePlugin extends CordovaPlugin {
 					// Oh no, there was a problem.
 					// callbackContext.error("Problem setting up in-app billing: " + result);
 					Log.d(TAG, "Error : " + result);
-					String errorMsg = "unknownError";
+					int errorCode = UNKNOWN_ERROR;
 					if (result.getResponse() == 3) {
 						// Billing is not available
 						// Missing Google Account
-						errorMsg = "cannotPurchase";
+						errorCode = CANNOT_PURCHASE;
 					}
 
 					// Set the error for the current context
-					if (mRestoreAllCbContext != null) 			mRestoreAllCbContext.error(errorMsg);
-					else if (mProductDetailCbContext != null)	mProductDetailCbContext.error(errorMsg);
-					else if (mGetPendingCbContext != null)		mGetPendingCbContext.error(errorMsg);
-					else if (mMakePurchaseCbContext != null)	mMakePurchaseCbContext.error(errorMsg);
-					else if (mConsumeCbContext != null)			mConsumeCbContext.error(errorMsg);
+					if (mRestoreAllCbContext != null)          mRestoreAllCbContext.error(errorCode);
+					else if (mProductDetailCbContext != null)  mProductDetailCbContext.error(errorCode);
+					else if (mGetPendingCbContext != null)     mGetPendingCbContext.error(errorCode);
+					else if (mMakePurchaseCbContext != null)   mMakePurchaseCbContext.error(errorCode);
+					else if (mFinishPurchaseCbContext != null) mFinishPurchaseCbContext.error(errorCode);
 
 					// Stop further processing
 					return;
@@ -366,39 +422,39 @@ public class WizPurchasePlugin extends CordovaPlugin {
 	 *
 	 * @param data Sku or Array of skus of products to be consumed
 	 **/
-	private void consumePurchase(JSONArray data) throws JSONException{
-		// Returning Error Message
-		String errorMsg = "";
-
-		// Iterate the given Array of skus
-		for (int i = 0; i < data.length(); i++) {
-			// Instance the current sku to be consumed
-			String sku = data.getString(i);
-			// Skip invalid skus
-			if (sku == null) continue;
-			if (sku == "") continue;
-			Log.d(TAG, "fetching item: " + sku);
-			// Get the purchase from the inventory
-			Purchase purchase = mInventory.getPurchase(sku);
-			// Check if we actually have a purchase to consume
-			if (purchase != null) {
-				Log.d(TAG, "purchase is: " + purchase.toString());
-				// Process the consumption asynchronously
-				mHelper.consumeAsync(purchase, mConsumeFinishedListener);
-			} else {
-				// Check if we already have an error and add the separator for handle a split later on
-				// TODO: Can the sku contain "."? if so a different separator would be needed
-				if (!errorMsg.isEmpty()) errorMsg += ".";
-				// Add the current sku to the returning error string
-				errorMsg += "Sku: " + sku + " was not consumable";
-			}
+	private void finishPurchase(JSONArray data) throws JSONException {
+		if (data.length() < 2) {
+			mFinishPurchaseCbContext.error(ARGS_ARITY_MISMATCH);
+			mFinishPurchaseCbContext = null;
+			return;
 		}
-		// Check if we need to process an Error Listener
-		if (mConsumeCbContext != null) {
-			// If we have errors send the error to the listener
-			if (!errorMsg.isEmpty()) mConsumeCbContext.error(errorMsg);
-			// Clean the listener instance
-			mConsumeCbContext = null;
+
+		String productId = data.getString(0);
+		boolean isConsumable = data.getBoolean(1);
+
+		Purchase purchase = mInventory.getPurchase(productId);
+		if (purchase == null) {
+			mFinishPurchaseCbContext.error(PURCHASE_NOT_FOUND);
+			mFinishPurchaseCbContext = null;
+			return;
+		}
+
+		Log.d(TAG, "Purchase is: " + purchase.toString());
+		String purchaseSku = purchase.getSku();
+
+		SharedPreferences pendingPurchasesCache = cordova.getActivity().getSharedPreferences(PENDING_PURCHASES_CACHE_NAME, 0);
+		if (!pendingPurchasesCache.contains(purchaseSku)) {
+			mFinishPurchaseCbContext.error(PURCHASE_NOT_PENDING);
+			mFinishPurchaseCbContext = null;
+			return;
+		}
+		SharedPreferences.Editor editor = pendingPurchasesCache.edit();
+		editor.remove(purchaseSku);
+		editor.commit();
+
+		if (isConsumable) {
+			// Process the consumption asynchronously
+			mHelper.consumeAsync(purchase, mConsumeFinishedListener);
 		}
 	}
 
@@ -408,13 +464,34 @@ public class WizPurchasePlugin extends CordovaPlugin {
 	 **/
 	private JSONArray getPurchases() throws JSONException {
 		// Get the list of owned items
-		List<Purchase>purchaseList = mInventory.getAllPurchases();
+		List<Purchase> purchaseList = mInventory.getAllPurchases();
 
 		// Convert the java list to JSON
 		JSONArray jsonPurchaseList = new JSONArray();
 		// Iterate all products
 		for (Purchase p : purchaseList) {
 			jsonPurchaseList.put(new JSONObject(p.getOriginalJson()));
+		}
+		// Return the JSON list
+		return jsonPurchaseList;
+	}
+
+	/**
+	 * Get the list of pending purchases
+	 *
+	 **/
+	private JSONArray getPendingPurchases() throws JSONException {
+		// Get the list of owned items
+		List<Purchase> purchaseList = mInventory.getAllPurchases();
+
+		SharedPreferences pendingPurchasesCache = cordova.getActivity().getSharedPreferences(PENDING_PURCHASES_CACHE_NAME, 0);
+		// Convert the java list to JSON
+		JSONArray jsonPurchaseList = new JSONArray();
+		// Iterate all products
+		for (Purchase p : purchaseList) {
+			if (pendingPurchasesCache.getBoolean(p.getSku(), false)) {
+				jsonPurchaseList.put(new JSONObject(p.getOriginalJson()));
+			}
 		}
 		// Return the JSON list
 		return jsonPurchaseList;
@@ -588,9 +665,9 @@ public class WizPurchasePlugin extends CordovaPlugin {
 				// Check if there are purchase errors
 				if (result.isFailure()) {
 					// Get the Error message
-					String errMsg = returnErrorString(result.getResponse());
+					int errorCode = returnErrorCode(result.getResponse());
 					// Dispatch the Error event
-					mMakePurchaseCbContext.error(errMsg);
+					mMakePurchaseCbContext.error(errorCode);
 					// Clear the handler and stop processing
 					mMakePurchaseCbContext = null;
 					return;
@@ -614,6 +691,12 @@ public class WizPurchasePlugin extends CordovaPlugin {
 				mMakePurchaseCbContext = null;
 			}
 
+			// Set the purchase has pending in SharedPreferences
+			SharedPreferences pendingPurchasesCache = cordova.getActivity().getSharedPreferences(PENDING_PURCHASES_CACHE_NAME, 0);
+			SharedPreferences.Editor editor = pendingPurchasesCache.edit();
+			editor.putBoolean(purchase.getSku(), true);
+			editor.commit();
+
 			// Add the purchase to the inventory
 			mInventory.addPurchase(purchase);
 		}
@@ -634,21 +717,21 @@ public class WizPurchasePlugin extends CordovaPlugin {
 				Log.d(TAG, "Consumption successful. .");
 
 				// Check if we have the handler
-				if (mConsumeCbContext != null) {
+				if (mFinishPurchaseCbContext != null) {
 					// Dispatch the Success event
-					mConsumeCbContext.success();
+					mFinishPurchaseCbContext.success();
 				}
 			} else {
 				// Check if we have the handler
-				if (mConsumeCbContext != null) {
+				if (mFinishPurchaseCbContext != null) {
 					// Get the Error message
-					String errorMsg = returnErrorString(result.getResponse());
+					int errorCode = returnErrorCode(result.getResponse());
 					// Dispatch the Error event
-					mConsumeCbContext.error(errorMsg);
+					mFinishPurchaseCbContext.error(errorCode);
 				}
 			}
 			// Clear the handler
-			mConsumeCbContext = null;
+			mFinishPurchaseCbContext = null;
 		}
 	};
 
@@ -672,14 +755,14 @@ public class WizPurchasePlugin extends CordovaPlugin {
 			Log.e(TAG, "Error: " + result.toString());
 			if (mProductDetailCbContext != null) {
 				// Dispatch the Error event
-				mProductDetailCbContext.error(returnErrorString(result.getResponse()));
+				mProductDetailCbContext.error(returnErrorCode(result.getResponse()));
 				// Clear the handler
 				mProductDetailCbContext = null;
 			}
 
 			if (mRestoreAllCbContext != null) {
 				// Dispatch the Error event
-				mRestoreAllCbContext.error(returnErrorString(result.getResponse()));
+				mRestoreAllCbContext.error(returnErrorCode(result.getResponse()));
 				// Clear the handler
 				mRestoreAllCbContext = null;
 			}
@@ -710,32 +793,33 @@ public class WizPurchasePlugin extends CordovaPlugin {
 	 *
 	 * @param error Error code to be converted
 	 **/
-	private String returnErrorString(int error) {
+	private int returnErrorCode(int error) {
 
 		// Define the default message
-		String errMsg = "unknownError";
+		int errorCode;
 		// Update the message according to the given code
-		if (error == -1001) 		errMsg = "remoteException";
-		else if (error == -1002)	errMsg = "badResponse";
-		else if (error == -1003)	errMsg = "badSignature";
-		else if (error == -1004)	errMsg = "sendIntentFailed";
-		else if (error == -1005)	errMsg = "userCancelled";
-		else if (error == -1006)	errMsg = "invalidPurchase";
-		else if (error == -1007)	errMsg = "missingToken";
-		else if (error == -1008)	errMsg = "unknownError";
-		else if (error == -1009)	errMsg = "noSubscriptions";
-		else if (error == -1010)	errMsg = "invalidConsumption";
-		else if (error == 1)		errMsg = "userCancelled";
-		else if (error == 2)		errMsg = "unknownError";
-		else if (error == 3)		errMsg = "cannotPurchase";
-		else if (error == 4)		errMsg = "unknownProductId";
-		else if (error == 5)		errMsg = "unknownError";
-		else if (error == 6)		errMsg = "invalidPurchase";
-		else if (error == 7)		errMsg = "alreadyOwned";
-		else if (error == 8)		errMsg = "notOwned";
+		if (error == -1001)      errorCode = REMOTE_EXCEPTION;
+		else if (error == -1002) errorCode = BAD_RESPONSE;
+		else if (error == -1003) errorCode = BAD_SIGNATURE;
+		else if (error == -1004) errorCode = SEND_INTENT_FAILED;
+		else if (error == -1005) errorCode = USER_CANCELLED;
+		else if (error == -1006) errorCode = INVALID_PURCHASE;
+		else if (error == -1007) errorCode = MISSING_TOKEN;
+		else if (error == -1008) errorCode = UNKNOWN_ERROR;
+		else if (error == -1009) errorCode = NO_SUBSCRIPTIONS;
+		else if (error == -1010) errorCode = INVALID_CONSUMPTION;
+		else if (error == 1)     errorCode = USER_CANCELLED;
+		else if (error == 2)     errorCode = UNKNOWN_ERROR;
+		else if (error == 3)     errorCode = CANNOT_PURCHASE;
+		else if (error == 4)     errorCode = UNKNOWN_PRODUCT_ID;
+		else if (error == 5)     errorCode = UNKNOWN_ERROR;
+		else if (error == 6)     errorCode = INVALID_PURCHASE;
+		else if (error == 7)     errorCode = ALREADY_OWNED;
+		else if (error == 8)     errorCode = NOT_OWNED;
+		else                     errorCode = UNKNOWN_ERROR;
 
 		// Return the Message
-		return errMsg;
+		return errorCode;
 	}
 
 	/** Verifies the developer payload of a purchase. */

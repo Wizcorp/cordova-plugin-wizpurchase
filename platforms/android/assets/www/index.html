@@ -292,12 +292,12 @@
 	    <script type="text/javascript" charset="utf-8" src="cordova.js"></script>
 	    <script type="text/javascript">		    
 		    function restoreAll() {
-		        wizPurchase.restoreAll(function (result) { alert("Restored: " + JSON.stringify(result)) }, function (error) { alert("Error:" + error) });
+		        wizPurchase.restoreAllPurchases(function (result) { alert("Restored: " + JSON.stringify(result)) }, function (error) { alert("Error:" + error) });
 		    }
 		    
-		    function getProductDetail() {
+		    function getProductDetails() {
 		    	var retVal = prompt("Enter productId : ", "");
-		        wizPurchase.getProductDetail(retVal, function (result) { alert( JSON.stringify(result)) }, function (error) { alert("Error:" + error) });
+		        wizPurchase.getProductDetails(retVal, function (result) { alert( JSON.stringify(result)) }, function (error) { alert("Error:" + error) });
 		    }
 		    
 		    function makePurchase() {
@@ -307,7 +307,7 @@
 
 		    function getPending() {
 		    	document.getElementById('pending').innerHTML = "Checking...";
-		        wizPurchase.getPending(function (result) {
+		        wizPurchase.getPendingPurchases(function (result) {
 		        		if (result != null && result.length > 0) {
 		        			// Just display the first one for proof of concept, you might have many.
 			        		var pendingObj = result[0];
@@ -319,11 +319,6 @@
 		        	},
 		        	function (error) { alert("Error:" + error) }
 		        );
-		    }
-
-		    function consumePurchase() {
-		    	var retVal = prompt("Paste productId : ", "");
-		        wizPurchase.consumePurchase(retVal, function () { alert("Comsumed OK")  }, function (error) { alert("Error:" + error) });
 		    }
 	    </script>
     </head>
@@ -337,13 +332,11 @@
 	            <p>Restore any non-consumable purchases.</p>
 	        	<button onclick="restoreAll();">Restore All</button>
 	        	<p>Get product details.</p>
-	        	<button onclick="getProductDetail();">Get Details</button>
+		        <button onclick="getProductDetails();">Get Details</button>
 	        	<p>Make a purchase.</p>
 	        	<button onclick="makePurchase();">Purchase</button>
 	        	<p>Get pending unverified or pending consumption purchases.</p>
 	        	<button onclick="getPending();">Get Pending</button>
-	        	<p>Consume a purchase.</p>
-	        	<button onclick="consumePurchase();">Consume</button>
 			</section>
 		</div>
     </body>
