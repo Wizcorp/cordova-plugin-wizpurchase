@@ -18,6 +18,9 @@
     <js-module src="www/phonegap/plugin/wizPurchasePlugin/wizPurchasePlugin.js" name="wizPurchase" target="phonegap/plugin/wizPurchase/wizPurchase.js">
         <clobbers target="window.wizPurchase" />
     </js-module>
+    <js-module src="www/phonegap/plugin/wizPurchasePlugin/WizPurchaseError.js" name="WizPurchaseError" target="phonegap/plugin/wizPurchase/WizPurchaseError.js">
+        <clobbers target="window.WizPurchaseError" />
+    </js-module>
 
     <!-- ios -->
     <platform name="ios">
