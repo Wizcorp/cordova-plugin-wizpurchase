@@ -126,7 +126,7 @@
     return resultWithReceipt;
 }
 
-- (void)getReceipt:(NSString *)callbackId results:(NSArray *)results {
+- (void)sendTransactionResultsWithReceipt:(NSString *)callbackId results:(NSArray *)results {
     NSString *receiptString = [self getReceiptString];
     if (receiptString) {
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
@@ -137,7 +137,7 @@
     }
 }
 
-- (void)getReceipt:(NSString *)callbackId result:(NSDictionary *)result {
+- (void)sendTransactionResultWithReceipt:(NSString *)callbackId result:(NSDictionary *)result {
     NSString *receiptString = [self getReceiptString];
     if (receiptString) {
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
@@ -156,7 +156,7 @@
         [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
         return;
     }
-    [self getReceipt:callbackId result:result];
+    [self sendTransactionResultWithReceipt:callbackId result:result];
 }
 
 - (void)sendTransactionResults:(NSString *)callbackId results:(NSArray *)results {
@@ -167,12 +167,13 @@
         [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
         return;
     }
-    [self getReceipt:callbackId results:results];
+    [self sendTransactionResultsWithReceipt:callbackId results:results];
 }
 
 - (void)refreshReceipt:(NSString *)callbackId result:(id)result {
-    if ([refreshReceiptCallbacks count] > 0) {
-        [refreshReceiptCallbacks setObject:result forKey:callbackId];
+    [refreshReceiptCallbacks setObject:result forKey:callbackId];
+    // If there is more than one refresh receipt callback waiting it means a receipt refresh request was already sent
+    if ([refreshReceiptCallbacks count] > 1) {
         return;
     }
     SKReceiptRefreshRequest *receiptRefreshRequest = [[SKReceiptRefreshRequest alloc] init];
