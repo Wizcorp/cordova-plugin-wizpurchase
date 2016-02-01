@@ -5,7 +5,9 @@ A cross-platform mobile application payment API for iOS IAP and Android Billing.
 
 - PhoneGap Version : 3.3
 
-** NOTE: Not currently supporting subscriptions **
+**NOTE:**
+**- Not currently supporting subscriptions.**
+**- Receipts on iOS use API ```appStoreReceiptURL``` available from iOS 7.**
 
 ***A lot of work from the Android side of this plugin must be credited to @[poiuytrez](https://github.com/poiuytrez)'s [AndroidInAppBilling](https://github.com/poiuytrez/AndroidInAppBilling/) plugin. We re-used some plugin class code and all the utility classes, but replaced a lot of the API to be usable in a cross-platform manner with iOS. Many thanks goes to him for his hard work.***
 
