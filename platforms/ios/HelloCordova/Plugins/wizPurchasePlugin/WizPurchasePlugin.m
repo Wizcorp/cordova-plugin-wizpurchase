@@ -12,10 +12,10 @@
 @implementation WizPurchasePlugin
 
 - (CDVPlugin *)initWithWebView:(UIWebView *)theWebView {
-
-    refreshReceiptCallbacks = [[NSMutableDictionary alloc] init];
-
+    self = [super init];
     if (self) {
+        refreshReceiptCallbacks = [[NSMutableDictionary alloc] init];
+
         // Register ourselves as a transaction observer
         // (we get notified when payments in the payment queue get updated)
         [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
