@@ -11,9 +11,10 @@
 #import <Cordova/CDVPlugin.h>
 
 @interface WizPurchasePlugin : CDVPlugin <SKProductsRequestDelegate, SKPaymentTransactionObserver> {
-    SKProductsResponse *productsResponse;
+    NSArray *validProducts;
     NSString *getProductDetailsCb;
     NSString *makePurchaseCb;
+    NSString *makePurchaseProductId;
     NSString *restorePurchaseCb;
 }
 
