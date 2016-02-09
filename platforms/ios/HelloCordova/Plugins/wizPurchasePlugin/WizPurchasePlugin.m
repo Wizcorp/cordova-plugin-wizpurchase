@@ -74,31 +74,38 @@
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)makePurchase:(CDVInvokedUrlCommand *)command {
-    NSString *productId = [command.arguments objectAtIndex:0];
-    makePurchaseCb = command.callbackId;
-    
+- (void)purchaseProduct:(SKProduct *)product {
+    SKMutablePayment *payment = [SKMutablePayment paymentWithProduct:product];
+    [[SKPaymentQueue defaultQueue] addPayment:payment];
+}
+
+- (SKProduct *)findProductInProducts:(NSArray *)products productId:(NSString *)productId {
+    if (products == NULL) {
+        return NULL;
+    }
+
     SKProduct *product = NULL;
-    if (productsResponse != NULL) {
-        // We have a made a product request before, check if we already called for this product
-        
-        for (SKProduct *obj in (NSArray *)productsResponse.products) {
-            // Look for our requested product in the list of valid products
-            if ([obj.productIdentifier isEqualToString:productId]) {
-                // Found a valid matching product
-                product = obj;
-                break;
-            }
+    for (SKProduct *obj in products) {
+        if ([obj.productIdentifier isEqualToString:productId]) {
+            product = obj;
+            break;
         }
     }
+    return product;
+}
+
+- (void)makePurchase:(CDVInvokedUrlCommand *)command {
+    makePurchaseProductId = [command.arguments objectAtIndex:0];
+    makePurchaseCb = command.callbackId;
+
+    SKProduct *product = [self findProductInProducts:validProducts productId:makePurchaseProductId];
     
     [self.commandDelegate runInBackground:^{
         if (product != NULL) {
-            // We can shortcut an HTTP request, this product has been requested before
-            [self productsRequest:NULL didReceiveResponse:(SKProductsResponse *)productsResponse];
+            [self purchaseProduct:product];
         } else {
             // We need to fetch the product
-            [self fetchProducts:@[ productId ]];
+            [self fetchProducts:@[ makePurchaseProductId ]];
         }
     }];
 }
@@ -192,15 +199,14 @@
                                                               messageAsString:@"unknownProductId"];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
             makePurchaseCb = NULL;
+            makePurchaseProductId = NULL;
             return;
         }
         
         // Continue the purchase flow
-        if ([response.products count] > 0) {
-            SKProduct *product = [response.products objectAtIndex:0];
-            SKMutablePayment *payment = [SKMutablePayment paymentWithProduct:product];
-            [[SKPaymentQueue defaultQueue] addPayment:payment];
-            
+        SKProduct *product = [self findProductInProducts:response.products productId:makePurchaseProductId];
+        if (product) {
+            [self purchaseProduct:product];
             return;
         }
         
@@ -208,6 +214,7 @@
                                                           messageAsString:@"unknownProductId"];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
         makePurchaseCb = NULL;
+        makePurchaseProductId = NULL;
     }
     
     if (getProductDetailsCb != NULL) {
@@ -227,14 +234,14 @@
        
         // If you request all productIds we create a shortcut here for doing makePurchase
         // it saves on http requests
-        productsResponse = (SKProductsResponse *)response;
+        validProducts = response.products;
         
         NSDictionary *product = NULL;
         NSMutableDictionary *productsDictionary = [[NSMutableDictionary alloc] init];
-        WizLog(@"Products found: %i", [response.products count]);
+        WizLog(@"Products found: %i", [validProducts count]);
         NSString *storeCountry = NULL;
         NSString *storeCurrency = NULL;
-        for (SKProduct *obj in response.products) {
+        for (SKProduct *obj in validProducts) {
             // Build a detailed product list from the list of valid products
             
             // Fromat the price
@@ -346,6 +353,7 @@
                                                                   messageAsDictionary:result];
                     [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
                     makePurchaseCb = NULL;
+                    makePurchaseProductId = NULL;
                 }
                 break;
             }
@@ -360,6 +368,7 @@
                                                                       messageAsString:[self returnErrorString:transaction.error]];
                     [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
                     makePurchaseCb = NULL;
+                    makePurchaseProductId = NULL;
                 }
                 break;
                 
@@ -385,6 +394,7 @@
                                                                       messageAsString:[self returnErrorString:transaction.error]];
                     [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
                     makePurchaseCb = NULL;
+                    makePurchaseProductId = NULL;
                 }
                 continue;
         }
