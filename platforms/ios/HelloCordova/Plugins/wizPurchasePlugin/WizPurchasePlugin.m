@@ -11,16 +11,12 @@
 
 @implementation WizPurchasePlugin
 
-- (CDVPlugin *)initWithWebView:(UIWebView *)theWebView {
-    self = [super init];
-    if (self) {
-        refreshReceiptCallbacks = [[NSMutableDictionary alloc] init];
+- (void)pluginInitialize {
+    refreshReceiptCallbacks = [[NSMutableDictionary alloc] init];
 
-        // Register ourselves as a transaction observer
-        // (we get notified when payments in the payment queue get updated)
-        [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
-    }
-    return self;
+    // Register ourselves as a transaction observer
+    // (we get notified when payments in the payment queue get updated)
+    [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
 }
 
 - (BOOL)canMakePurchase {
@@ -288,7 +284,7 @@
             [self.commandDelegate sendPluginResult:pluginResult callbackId:key];
         }
     }
-    refreshReceiptCallbacks = [[NSMutableDictionary alloc] init];
+    [refreshReceiptCallbacks removeAllObjects];
 }
 
 - (void)request:(SKRequest *)request didFailWithError:(NSError *)error {
@@ -305,7 +301,7 @@
     for (NSString *key in keys) {
         [self.commandDelegate sendPluginResult:pluginResult callbackId:key];
     }
-    refreshReceiptCallbacks = [[NSMutableDictionary alloc] init];
+    [refreshReceiptCallbacks removeAllObjects];
 }
 
 - (void)productsRequest:(SKProductsRequest *)request didReceiveResponse:(SKProductsResponse *)response {
