@@ -42,6 +42,7 @@
 
     <!-- android -->
     <platform name="android">
+        <preference name="BILLING_KEY"/>
 
         <config-file target="res/xml/config.xml" parent="/*">
             <feature name="wizPurchasePlugin" >
@@ -84,6 +85,9 @@
         <!-- Billing Key String Holder -->
         <source-file src="platforms/android/res/values/billing_key.xml"
                 target-dir="res/values/"/>
+        <config-file target="res/values/billing_key.xml" parent="/*">
+            <string name="billing_key">$BILLING_KEY</string>
+        </config-file>
     </platform>
 
 </plugin>
