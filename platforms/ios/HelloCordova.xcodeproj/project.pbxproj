@@ -501,7 +501,7 @@
 					"-ObjC",
 				);
 				PRODUCT_NAME = HelloCordova;
-				PROVISIONING_PROFILE = "C7FE8E28-0AB1-45F2-9977-88091CAD456C";
+				PROVISIONING_PROFILE = "";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -534,7 +534,7 @@
 					"-ObjC",
 				);
 				PRODUCT_NAME = HelloCordova;
-				PROVISIONING_PROFILE = "C7FE8E28-0AB1-45F2-9977-88091CAD456C";
+				PROVISIONING_PROFILE = "";
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Release;
