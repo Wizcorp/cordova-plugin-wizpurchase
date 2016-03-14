@@ -1,7 +1,7 @@
 phonegap-plugin-wizPurchase
 ===========================
 
-A cross-platform mobile application payment API for iOS IAP and Android Billing. 
+A cross-platform mobile application payment API for iOS IAP and Android Billing.
 
 - PhoneGap Version : 3.3
 
@@ -20,6 +20,13 @@ A cross-platform mobile application payment API for iOS IAP and Android Billing.
 	<plugin name="jp.wizcorp.phonegap.plugin.wizPurchase" spec="https://github.com/Wizcorp/phonegap-plugin-wizPurchase">
 	    <variable name="BILLING_KEY" value="YOUR_BILLING_KEY" />
 	</plugin>
+	
+### via Phonegap Build (PGB)
+
+	<plugin name="jp.wizcorp.phonegap.plugin.wizPurchase" spec="https://github.com/Wizcorp/phonegap-plugin-wizPurchase">
+			<param name="BILLING_KEY" value="YOUR_BILLING_KEY" />
+	</plugin>
+
 
 You need to specify your billing key **only** if you need Android support.
 
@@ -27,7 +34,7 @@ You need to specify your billing key **only** if you need Android support.
 
 #### iOS
 
-- In iTunes Connect create: your application, any items and an IAP test user (on the main screen see "Manage Users"). 
+- In iTunes Connect create: your application, any items and an IAP test user (on the main screen see "Manage Users").
 
 - Test on a real device (not simulator).
 
@@ -80,41 +87,41 @@ This method for Android fetches any pending consumption products.
 			} ...
 		]
 
-- *Return* failure with error 
+- *Return* failure with error
 
 ### restoreAll(Function success, Function failure)
 
-Get a list of non-consumable item receipts / purchaseTokens 
-								
-iOS should internally... 
+Get a list of non-consumable item receipts / purchaseTokens
+
+iOS should internally...
 Check the call the code below return any owned non consumables etc.
-				
+
 `[[SKPaymentQueue defaultQueue] addTransactionObserver:self];`
 `[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];`		
 then `(void)paymentQueueRestoreCompletedTransactionsFinished`
 
 Android should internally call `Bundle getPurchases()` on IInAppBillingService.aidl Class
 This populates an Inventory object with all purchases ever made except the consumed purchases.
-					
+
 - *Return* success with an Array of one or many puchaseTokens (Android) or receipts (iOS)
 	* e.g. Android
-		`[ "puchase-token-string", ... ]` 
-		
-- *Return* failure with error 
+		`[ "puchase-token-string", ... ]`
+
+- *Return* failure with error
 
 (Developer should check any returned items with server APIs. If any items exist that are consumables, but have not been comsumed. The developer should call `consumePurchase()` because it is likely a previous purchase was not completed )
-					
+
 
 ### makePurchase(String productId, Function success, Function failure)
 
 Make a purchase given a product Id (Quantity is not settable with the API, it is always 1 to be cross platform complete).
-					
+
 (ANDROID: A NON-CONSUMABLE CANNOT BE PURCHASED IF IT IS ALREADY OWNED [not-consumed], this applies to any product Id that has not been comsumed with `consumePurchse()`).
-					
+
 iOS should internally call `[SKMutablePayment paymentWithProductIdentifier:productId];`
 then add the payment to the payment queue `[[SKPaymentQueue defaultQueue] addPayment:payment]`
 When a transaction is complete the receipt is stored in the DB.
-					
+
 Android internally should call void `launchPurchaseFlow()` on IInAppBillingService.aidl Class
 Upon a successful purchase, the user’s purchase data is cached locally by Google Play’s In-app Billing service.
 
@@ -129,7 +136,7 @@ Upon a successful purchase, the user’s purchase data is cached locally by Goog
 			productId: "sword001",
 			packageName: "jp.wizcorp.game"
 		}
-	
+
 - *Return* failure with error
 
 On success do a receipt verification (if server API exists) gift the user.
@@ -140,7 +147,7 @@ On success do a receipt verification (if server API exists) gift the user.
 | **GET**  |
 | / **[packageName]**/inapp/**[productId]**/purchases/**[token]** |
 | Checks the purchase and consumption status of an inapp item. |
-	
+
 
 |  iOS Verification API |
 | --------- |:--------:| ------:|
@@ -150,31 +157,31 @@ On success do a receipt verification (if server API exists) gift the user.
 | JSON is returned. If the value of the `status` key is 0, this is a valid receipt. |
 
 NOTE: Always verify your receipt for auto-renewable subscriptions first with the production URL; proceed to verify with the sandbox URL if you receive a 21007 status code. Following this approach ensures that you do not have to switch between URLs while your application is being tested or reviewed in the sandbox or is live in the App Store.
-			
+
 ### consumePurchase(String or Array of productIds, Function success, Function failure)
 
 Consume the product for the purchaseId given.
-										
+
 iOS removes the item from it's local data store.
-					
+
 Android internally calls `int consumePurchase()` on IInAppBillingService.aidl Class
-		
+
 Upon a successful purchase, the user’s purchase data is cached locally by Google Play’s In-app Billing service.
 
 ** See security notes below **
 
 - *Return* success
-- *Return* failure with error 
-					
+- *Return* failure with error
+
 
 ### getProductDetail(String productId or Array of productIds, Function success, Function failure)
 
 Get the details for a single productId or for an Array of productIds.
-					
+
 iOS should internally call `[[SKProductsRequest alloc] initWithProductIdentifiers:productIdentifiers]`
 
 Android should internally call `queryInventoryAsync()` on the helper class which should call `getSkuDetails()`.
-					
+
 - Return success with Object containing country, currency code and key/value map of products
 
 NB: Currently on Android the country code can not be guessed and as such, it is not returned.
@@ -209,7 +216,7 @@ or empty `{ }` if productIds was an empty array.
 #### Security notes (Android)
 
 *** You (the developer) should verify that the orderId is a unique value that you have not previously processed, and the developerPayload string matches the token that you sent previously with the purchase request. As a further security precaution, you should perform the verification on your own secure server. ***
-	
+
 ### Error Handling
 
 Failure callbacks return an error as String. See the following error table:
