@@ -5,7 +5,19 @@ A cross-platform mobile application payment API for iOS IAP and Android Billing.
 
 - PhoneGap Version : 3.3
 
-** NOTE: Not currently supporting subscriptions **
+
+-----
+## Major API changes warning
+***API changed since v1.x.x. Please be sure you target the right version. There are no API changes except on new major versions.
+If your plugin dependency points directly to Github, make sure to have the right version by adding it at the end of the URL, e.g.:***
+https://github.com/Wizcorp/phonegap-plugin-wizPurchase#v1.2.0
+
+-----
+
+
+**NOTE:**
+- **Not currently supporting subscriptions.**
+- **Receipts on iOS use API ```appStoreReceiptURL``` available from iOS 7**
 
 ***A lot of work from the Android side of this plugin must be credited to @[poiuytrez](https://github.com/poiuytrez)'s [AndroidInAppBilling](https://github.com/poiuytrez/AndroidInAppBilling/) plugin. We re-used some plugin class code and all the utility classes, but replaced a lot of the API to be usable in a cross-platform manner with iOS. Many thanks goes to him for his hard work.***
 
@@ -61,82 +73,51 @@ You need to specify your billing key **only** if you need Android support.
 
 ## Purchase Flow
 
-![image](purchase_flow.gif)
+![image](purchase_flow.png)
+
+## Purchase object
+
+Purchase objects contain product information that can be used for verification.
+
+```
+	{
+		platform: "ios" or "android",
+		orderId: transaction identifier for iOS or order ID for Android,
+		receipt: purchaseToken or ios receipt as String,
+		productId: "sword001",
+		packageName: "jp.wizcorp.game"
+	}
+```
 
 ## JavaScript APIs
 
-### getPending(Function success, Function failure)
+### getPendingPurchases(Function success, Function failure)
 
-This method for iOS fetches any pending verification products (which have not been consumed yet).
+Get a list of purchases which have not been ended yet using ```finishPurchase```.
 
-This method for Android fetches any pending consumption products.
-
-- *Return* success with an Array of one or more Objects containing product information that can be used when consuming or verification.
-	e.g.
-
-		[
-			{
-				platform: "ios" or "android",
-				orderId: transaction identifier for iOS or order id for Android,
-				receipt: purchaseToken or ios receipt as String,
-				productId: "sword001",
-				packageName: "jp.wizcorp.game"
-			},
-			{
-				...
-			} ...
-		]
-
+- *Return* success with an Array of zero or more ```Purchase``` objects.
 - *Return* failure with error
 
-### restoreAll(Function success, Function failure)
+Developers should check any returned items with server APIs and complete their purchase using ```finishPurchase```.
 
-Get a list of non-consumable item receipts / purchaseTokens
+### restoreAllPurchases(Function success, Function failure)
 
-iOS should internally...
-Check the call the code below return any owned non consumables etc.
+Get a list of previous purchases of non-consumable and not yet finished purchases.
 
-`[[SKPaymentQueue defaultQueue] addTransactionObserver:self];`
-`[[SKPaymentQueue defaultQueue] restoreCompletedTransactions];`		
-then `(void)paymentQueueRestoreCompletedTransactionsFinished`
-
-Android should internally call `Bundle getPurchases()` on IInAppBillingService.aidl Class
-This populates an Inventory object with all purchases ever made except the consumed purchases.
-
-- *Return* success with an Array of one or many puchaseTokens (Android) or receipts (iOS)
-	* e.g. Android
-		`[ "puchase-token-string", ... ]`
-
+- *Return* success with an Array of zero or more ```Purchase``` objects.
 - *Return* failure with error
 
-(Developer should check any returned items with server APIs. If any items exist that are consumables, but have not been comsumed. The developer should call `consumePurchase()` because it is likely a previous purchase was not completed )
-
+Developers should check any returned items with server APIs. If any items that exist are consumables but have not been consumed, the developer should consume them using ```finishPurchase``` because it is likely that a previous purchase was not completed.
 
 ### makePurchase(String productId, Function success, Function failure)
 
-Make a purchase given a product Id (Quantity is not settable with the API, it is always 1 to be cross platform complete).
+Make a purchase given a product ID (Quantity is not settable with the API, it is always 1 to be cross-platform complete).
 
-(ANDROID: A NON-CONSUMABLE CANNOT BE PURCHASED IF IT IS ALREADY OWNED [not-consumed], this applies to any product Id that has not been comsumed with `consumePurchse()`).
-
-iOS should internally call `[SKMutablePayment paymentWithProductIdentifier:productId];`
-then add the payment to the payment queue `[[SKPaymentQueue defaultQueue] addPayment:payment]`
-When a transaction is complete the receipt is stored in the DB.
-
-Android internally should call void `launchPurchaseFlow()` on IInAppBillingService.aidl Class
-Upon a successful purchase, the user’s purchase data is cached locally by Google Play’s In-app Billing service.
+(ANDROID: A NON-CONSUMABLE CANNOT BE PURCHASED IF IT IS ALREADY OWNED [not-consumed], this applies to any product ID that has not been consumed with ```finishPurchase```).
 
 ** See security notes below **
 
-- *Return* success with transaction information
-
-		{
-			platform: "ios" or "android",
-			orderId: transaction identifier for iOS or order id for Android,
-			receipt: purchaseToken or ios receipt as String,
-			productId: "sword001",
-			packageName: "jp.wizcorp.game"
-		}
-
+- *Return* success with a ```Purchase``` Object
 - *Return* failure with error
 
 On success do a receipt verification (if server API exists) gift the user.
@@ -158,31 +139,19 @@ On success do a receipt verification (if server API exists) gift the user.
 
 NOTE: Always verify your receipt for auto-renewable subscriptions first with the production URL; proceed to verify with the sandbox URL if you receive a 21007 status code. Following this approach ensures that you do not have to switch between URLs while your application is being tested or reviewed in the sandbox or is live in the App Store.
 
-### consumePurchase(String or Array of productIds, Function success, Function failure)
+### finishPurchase(String productId, Boolean isConsumable, Function success, Function failure)
 
-Consume the product for the purchaseId given.
-
-iOS removes the item from it's local data store.
-
-Android internally calls `int consumePurchase()` on IInAppBillingService.aidl Class
-
-Upon a successful purchase, the user’s purchase data is cached locally by Google Play’s In-app Billing service.
-
-** See security notes below **
+Finish transaction of a purchase for given productId. Its associated product will be consumed if ```isConsumable``` is set to ```true```.
 
 - *Return* success
 - *Return* failure with error
 
-
-### getProductDetail(String productId or Array of productIds, Function success, Function failure)
+### getProductDetails(String productId or Array of productIds, Function success, Function failure)
 
 Get the details for a single productId or for an Array of productIds.
 
-iOS should internally call `[[SKProductsRequest alloc] initWithProductIdentifiers:productIdentifiers]`
-
-Android should internally call `queryInventoryAsync()` on the helper class which should call `getSkuDetails()`.
-
-- Return success with Object containing country, currency code and key/value map of products
+- *Return* success with Object containing country, currency code and key/value map of products
+- *Return* failure with error
 
 NB: Currently on Android the country code can not be guessed and as such, it is not returned.
 
@@ -219,17 +188,35 @@ or empty `{ }` if productIds was an empty array.
 
 ### Error Handling
 
-Failure callbacks return an error as String. See the following error table:
+Failure callbacks return an error as an integer. See the following error table:
 
-|Error String|Description|
-|:----------:|---------|
-|cannotPurchase		|Purchasing is not possible for the following reasons; <br /> - purchase is being made on a simulator or emulator, <br /> - the device has been identified as rooted. |
-|invalidClient		| Indicates that the client is not allowed to perform the attempted action. |
-|userCancelled		| Indicates that the user cancelled a payment request. |
-|invalidPayment		| Indicates that one of the payment parameters was not recognized.|
-|unauthorized		| Indicates that the user is not allowed to authorise payments (e.g. parental lock).|
-|unknownProductId	| Indicates that the requested product is not available or could not be found in the store. |
-|alreadyOwned		| [Android only] This item has already been bought. It cannot be bought again without consuming it first. |
+| Code | Constant                    | Description                                                                                            |
+|-----:|:----------------------------|:-------------------------------------------------------------------------------------------------------|
+|    1 | `UNKNOWN_ERROR`             |                                                                                                        |
+|    2 | `ARGS_TYPE_MISMATCH`        |                                                                                                        |
+|    3 | `ARGS_ARITY_MISMATCH`       |                                                                                                        |
+|    4 | `IOS_VERSION_ERR`           |                                                                                                        |
+|    5 | `INVALID_RECEIPT`           |                                                                                                        |
+|    6 | `INVALID_TRANSACTION_STATE` |                                                                                                        |
+|    7 | `PURCHASE_NOT_FOUND`        |                                                                                                        |
+|    8 | `PURCHASE_NOT_PENDING`      |                                                                                                        |
+|    9 | `REMOTE_EXCEPTION`          |                                                                                                        |
+|   10 | `BAD_RESPONSE`              |                                                                                                        |
+|   11 | `BAD_SIGNATURE`             |                                                                                                        |
+|   12 | `SEND_INTENT_FAILED`        |                                                                                                        |
+|   13 | `USER_CANCELLED`            | Indicates that the user cancelled a payment request                                                    |
+|   14 | `INVALID_PURCHASE`          |                                                                                                        |
+|   15 | `MISSING_TOKEN`             |                                                                                                        |
+|   16 | `NO_SUBSCRIPTIONS`          |                                                                                                        |
+|   17 | `INVALID_CONSUMPTION`       |                                                                                                        |
+|   18 | `CANNOT_PURCHASE`           | Purchasing is not possible for the following reasons:<br />- purchase is being made on a simulator or emulator,<br />- the device has been identified as rooted |
+|   19 | `UNKNOWN_PRODUCT_ID`        | Indicates that the requested product is not available or could not be found in the store               |
+|   20 | `ALREADY_OWNED`             | [Android only] This item has already been bought. It cannot be bought again without consuming it first |
+|   21 | `NOT_OWNED`                 |                                                                                                        |
+|   22 | `INVALID_CLIENT`            | Indicates that the client is not allowed to perform the attempted action                               |
+|   23 | `INVALID_PAYMENT`           | Indicates that one of the payment parameters was not recognized                                        |
+|   24 | `UNAUTHORIZED`              | Indicates that the user is not allowed to authorise payments (e.g. parental lock)                      |
+|   24 | `RECEIPT_REFRESH_FAILED`    |                                                                                                        |
 
 ======
 Ref Links

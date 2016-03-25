@@ -11,43 +11,32 @@
 
 @implementation WizPurchasePlugin
 
-- (CDVPlugin *)initWithWebView:(UIWebView *)theWebView {
+- (void)pluginInitialize {
+    restoredTransactions = [[NSMutableArray alloc] init];
+    pendingTransactions = [[NSMutableDictionary alloc] init];
 
-    if (self) {
-        // Register ourselves as a transaction observer
-        // (we get notified when payments in the payment queue get updated)
-        [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
-    }
-    return self;
+    restorePurchaseCallbacks = [[NSMutableArray alloc] init];
+    refreshReceiptCallbacks = [[NSMutableDictionary alloc] init];
+
+    // Register ourselves as a transaction observer
+    // (we get notified when payments in the payment queue get updated)
+    [[SKPaymentQueue defaultQueue] addTransactionObserver:self];
 }
 
-- (BOOL)canMakePurchase {
-    return [SKPaymentQueue canMakePayments];
-}
-
-- (void)canMakePurchase:(CDVInvokedUrlCommand *)command {
-    [self.commandDelegate runInBackground:^{
-        CDVPluginResult *pluginResult;
-        if ([self canMakePurchase]) {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
-        } else {
-            pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR messageAsString:@"unknownProductId"];
-        }
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
-    }];
-}
-
-- (void)restoreAll:(CDVInvokedUrlCommand *)command {
+- (void)restoreAllPurchases:(CDVInvokedUrlCommand *)command {
     WizLog(@"Restoring purchase");
 
-    restorePurchaseCb = command.callbackId;
-    // [self.commandDelegate runInBackground:^{
-        // Call this to get any previously purchased non-consumables
-        [[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
-    // }];
+    [restorePurchaseCallbacks addObject:command.callbackId];
+    // If there is more than one restore purchase callback waiting it means a restore purchase request was already sent
+    if ([restorePurchaseCallbacks count] > 1) {
+        return;
+    }
+
+    // Call this to get any previously purchased non-consumables
+    [[SKPaymentQueue defaultQueue] restoreCompletedTransactions];
 }
 
-- (void)getProductDetail:(CDVInvokedUrlCommand *)command {
+- (void)getProductDetails:(CDVInvokedUrlCommand *)command {
     WizLog(@"Getting products details");
     
     getProductDetailsCb = command.callbackId;
@@ -56,22 +45,26 @@
     }];
 }
 
-- (void)consumePurchase:(CDVInvokedUrlCommand *)command {
-    // Remove any receipt(s) from NSUserDefaults matching productIds, we have verified with a server
-    NSArray *productIds = [command.arguments objectAtIndex:0];
-    for (NSString *productId in productIds) {
-        // Remove receipt from storage
-        [self removeReceipt:productId];
+- (void)finishPurchase:(CDVInvokedUrlCommand *)command {
+    // Remove any transaction(s) we have verified with a server from pending transactions matching productId
+    NSString *productId = [command.arguments objectAtIndex:0];
+    SKPaymentTransaction *transaction = [pendingTransactions objectForKey:productId];
+    if (!transaction) {
+        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                             messageAsInt:PURCHASE_NOT_PENDING];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+        return;
     }
+
+    [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+    [pendingTransactions removeObjectForKey:productId];
+
     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
     [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
 }
 
-- (void)getPending:(CDVInvokedUrlCommand *)command {
-    // Return contents of user defaults
-    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                       messageAsArray:[self fetchReceipts]];
-    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+- (void)getPendingPurchases:(CDVInvokedUrlCommand *)command {
+    [self sendTransactions:[pendingTransactions allValues] toCallback:command.callbackId];
 }
 
 - (void)purchaseProduct:(SKProduct *)product {
@@ -110,6 +103,88 @@
     }];
 }
 
+- (NSString *)getReceiptString {
+    NSURL *receiptURL = [[NSBundle mainBundle] appStoreReceiptURL];
+    NSData *receiptData = [NSData dataWithContentsOfURL:receiptURL];
+    if (!receiptData) {
+        return nil;
+    }
+    return [receiptData base64EncodedStringWithOptions:0];
+}
+
+- (NSArray *)addReceiptToTransactionResults:(NSString *)receipt results:(NSArray *)results {
+    NSMutableArray *transactionResults = [NSMutableArray arrayWithCapacity:[results count]];
+    for (NSDictionary *result in results) {
+        [transactionResults addObject:[self addReceiptToTransactionResult:receipt result:result]];
+    }
+    return transactionResults;
+}
+
+- (NSDictionary *)addReceiptToTransactionResult:(NSString *)receipt result:(NSDictionary *)result {
+    NSMutableDictionary *resultWithReceipt = [result mutableCopy];
+    [resultWithReceipt setValue:receipt forKey:@"receipt"];
+    return resultWithReceipt;
+}
+
+- (void)sendTransactionResultsWithReceipt:(NSArray *)results toCallback:(NSString *)callbackId {
+    // Best practice of weak linking using the respondsToSelector: cannot be used here
+    if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_6_1) {
+        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                             messageAsInt:IOS_VERSION_ERR];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+        return;
+    }
+    NSString *receiptString = [self getReceiptString];
+    if (receiptString) {
+        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                           messageAsArray:[self addReceiptToTransactionResults:receiptString results:results]];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+    } else {
+        [self refreshReceipt:callbackId result:results];
+    }
+}
+
+- (void)sendTransactionResultWithReceipt:(NSDictionary *)result toCallback:(NSString *)callbackId {
+    // Best practice of weak linking using the respondsToSelector: cannot be used here
+    if (floor(NSFoundationVersionNumber) <= NSFoundationVersionNumber_iOS_6_1) {
+        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                             messageAsInt:IOS_VERSION_ERR];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+        return;
+    }
+    NSString *receiptString = [self getReceiptString];
+    if (receiptString) {
+        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                      messageAsDictionary:[self addReceiptToTransactionResult:receiptString result:result]];
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+    } else {
+        [self refreshReceipt:callbackId result:result];
+    }
+}
+
+- (void)sendTransaction:(SKPaymentTransaction *)transaction toCallback:(NSString *)callbackId {
+    [self sendTransactionResultWithReceipt:[self buildTransactionResult:transaction] toCallback:callbackId];
+}
+
+- (void)sendTransactions:(NSArray *)transactions toCallback:(NSString *)callbackId {
+    NSMutableArray *transactionResults = [[NSMutableArray alloc] init];
+    for (SKPaymentTransaction *transaction in transactions) {
+        [transactionResults addObject:[self buildTransactionResult:transaction]];
+    }
+    [self sendTransactionResultsWithReceipt:transactionResults toCallback:callbackId];
+}
+
+- (void)refreshReceipt:(NSString *)callbackId result:(id)result {
+    [refreshReceiptCallbacks setObject:result forKey:callbackId];
+    // If there is more than one refresh receipt callback waiting it means a receipt refresh request was already sent
+    if ([refreshReceiptCallbacks count] > 1) {
+        return;
+    }
+    SKReceiptRefreshRequest *receiptRefreshRequest = [[SKReceiptRefreshRequest alloc] init];
+    receiptRefreshRequest.delegate = self;
+    [receiptRefreshRequest start];
+}
+
 - (void)fetchProducts:(NSArray *)productIdentifiers {
     WizLog(@"Fetching product information");
     // Build a SKProductsRequest for the identifiers provided
@@ -118,71 +193,55 @@
     [productsRequest start];
 }
 
-- (NSArray *)fetchReceipts {
-    WizLog(@"Fetching receipts");
-#if USE_ICLOUD_STORAGE
-    NSUbiquitousKeyValueStore *storage = [NSUbiquitousKeyValueStore defaultStore];
-#else
-    NSUserDefaults *storage = [NSUserDefaults standardUserDefaults];
-#endif
-    
-    NSArray *savedReceipts = [storage arrayForKey:@"receipts"];
-    if (!savedReceipts) {
-        // None found
-        return @[ ];
-    } else {
-        // Return array
-        return savedReceipts;
+# pragma Methods for SKProductsRequestDelegate
+
+- (void) requestDidFinish:(SKRequest *)request {
+    if ([request isKindOfClass:[SKReceiptRefreshRequest class]]) {
+        [self receiptRefreshRequestDidFinish:(SKReceiptRefreshRequest *)request];
     }
 }
 
-- (void)removeReceipt:(NSString *)productId {
-    WizLog(@"Removing receipt for productId");
-#if USE_ICLOUD_STORAGE
-    NSUbiquitousKeyValueStore *storage = [NSUbiquitousKeyValueStore defaultStore];
-#else
-    NSUserDefaults *storage = [NSUserDefaults standardUserDefaults];
-#endif
-
-    NSMutableArray *savedReceipts = [[NSMutableArray alloc] initWithArray:[storage objectForKey:@"receipts"]];
-    if (savedReceipts) {
-        for (int i = 0; i < [savedReceipts count]; i++) {
-            if ([[[NSDictionary dictionaryWithDictionary:[savedReceipts objectAtIndex:i]] objectForKey:@"productId"] isEqualToString:productId]) {
-                // Remove receipt with matching productId
-                [savedReceipts removeObject:[savedReceipts objectAtIndex:i]];
-                // Remove old receipt array and switch for new one
-                [storage removeObjectForKey:@"receipts"];
-                [storage setObject:savedReceipts forKey:@"receipts"];
-                [storage synchronize];
+- (void) receiptRefreshRequestDidFinish:(SKReceiptRefreshRequest *)request {
+    CDVPluginResult *pluginResult;
+    NSString *receipt = [self getReceiptString];
+    NSArray *callbackIds = [refreshReceiptCallbacks allKeys];
+    if (receipt) {
+        for (NSString *callbackId in callbackIds) {
+            id result = [refreshReceiptCallbacks objectForKey:callbackId];
+            if ([result isKindOfClass:[NSDictionary class]]) {
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                             messageAsDictionary:[self addReceiptToTransactionResult:receipt result:result]];
+            } else if ([result isKindOfClass:[NSArray class]]) {
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
+                                                  messageAsArray:[self addReceiptToTransactionResults:receipt results:result]];
             }
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
+        }
+    } else {
+        pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                            messageAsInt:INVALID_RECEIPT];
+        for (NSString *callbackId in callbackIds) {
+            [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
         }
     }
+    [refreshReceiptCallbacks removeAllObjects];
 }
-
-- (void)backupReceipt:(NSDictionary *)result {
-    WizLog(@"Backing up receipt");
-#if USE_ICLOUD_STORAGE
-    NSUbiquitousKeyValueStore *storage = [NSUbiquitousKeyValueStore defaultStore];
-#else
-    NSUserDefaults *storage = [NSUserDefaults standardUserDefaults];
-#endif
-    
-    NSArray *savedReceipts = [storage arrayForKey:@"receipts"];
-    if (!savedReceipts) {
-        // Storing the first receipt
-        [storage setObject:@[result] forKey:@"receipts"];
-    } else {
-        // Adding another receipt
-        NSArray *updatedReceipts = [savedReceipts arrayByAddingObject:result];
-        [storage setObject:updatedReceipts forKey:@"receipts"];
-    }
-    [storage synchronize];
-}
-
-# pragma Methods for SKProductsRequestDelegate
 
 - (void)request:(SKRequest *)request didFailWithError:(NSError *)error {
     WizLog(@"request - didFailWithError: %@", [[error userInfo] objectForKey:@"NSLocalizedDescription"]);
+    if ([request isKindOfClass:[SKReceiptRefreshRequest class]]) {
+        [self receiptRefreshRequest:(SKReceiptRefreshRequest *)request didFailWithError:error];
+    }
+}
+
+- (void)receiptRefreshRequest:(SKReceiptRefreshRequest *)request didFailWithError:(NSError *)error {
+    CDVPluginResult* pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                         messageAsInt:RECEIPT_REFRESH_FAILED];
+    NSArray * keys = [refreshReceiptCallbacks allKeys];
+    for (NSString *key in keys) {
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:key];
+    }
+    [refreshReceiptCallbacks removeAllObjects];
 }
 
 - (void)productsRequest:(SKProductsRequest *)request didReceiveResponse:(SKProductsResponse *)response {
@@ -196,7 +255,7 @@
             }
             // We have requested at least one invalid product fallout here for security
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                              messageAsString:@"unknownProductId"];
+                                                                 messageAsInt:UNKNOWN_PRODUCT_ID];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
             makePurchaseCb = NULL;
             makePurchaseProductId = NULL;
@@ -211,7 +270,7 @@
         }
         
         CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                          messageAsString:@"unknownProductId"];
+                                                             messageAsInt:UNKNOWN_PRODUCT_ID];
         [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
         makePurchaseCb = NULL;
         makePurchaseProductId = NULL;
@@ -226,7 +285,7 @@
             }
             // We have requested at least one invalid product fallout here for security
             CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                          messageAsString:@"unknownProductId"];
+                                                                 messageAsInt:UNKNOWN_PRODUCT_ID];
             [self.commandDelegate sendPluginResult:pluginResult callbackId:getProductDetailsCb];
             getProductDetailsCb = NULL;
             return;
@@ -238,7 +297,7 @@
         
         NSDictionary *product = NULL;
         NSMutableDictionary *productsDictionary = [[NSMutableDictionary alloc] init];
-        WizLog(@"Products found: %i", [validProducts count]);
+        WizLog(@"Products found: %tu", [validProducts count]);
         NSString *storeCountry = NULL;
         NSString *storeCurrency = NULL;
         for (SKProduct *obj in validProducts) {
@@ -278,45 +337,39 @@
     }
 }
 
+- (NSDictionary *)buildTransactionResult:(SKPaymentTransaction *)transaction {
+    return @{
+             @"platform": @"ios",
+             @"orderId": transaction.transactionIdentifier,
+             @"productId": transaction.payment.productIdentifier,
+             @"packageName": [[NSBundle mainBundle] bundleIdentifier]
+             };
+}
+
 # pragma Methods for SKPaymentTransactionObserver
 
 - (void)paymentQueueRestoreCompletedTransactionsFinished:(SKPaymentQueue *)queue {
-    if (restorePurchaseCb != NULL) {
-        NSMutableArray *receipts = [[NSMutableArray alloc] init];
-        if ([[[SKPaymentQueue defaultQueue] transactions] count] > 0) {
-            for (SKPaymentTransaction *transaction in [[SKPaymentQueue defaultQueue] transactions]) {
-                NSString *receipt = [[NSString alloc] initWithData:[transaction transactionReceipt] encoding:NSUTF8StringEncoding];
-                NSDictionary *result = @{
-                     @"platform": @"ios",
-                     @"receipt": receipt,
-                     @"productId": transaction.payment.productIdentifier,
-                     @"packageName": [[NSBundle mainBundle] bundleIdentifier]
-                };
-                // Build array of restored receipt items
-                [receipts addObject:result];
-            }
-        }
-
-        // Return result to JavaScript
-        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                           messageAsArray:receipts];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:restorePurchaseCb];
-        restorePurchaseCb = NULL;
+    for (NSString *callbackId in restorePurchaseCallbacks) {
+        [self sendTransactions:[restoredTransactions copy] toCallback:callbackId];
     }
+
+    [restoredTransactions removeAllObjects];
+    [restorePurchaseCallbacks removeAllObjects];
 }
 
 - (void)paymentQueue:(SKPaymentQueue *)queue restoreCompletedTransactionsFailedWithError:(NSError *)error {
-    if (restorePurchaseCb != NULL) {
-        // Convert error code to String
-        NSString *errorString = [self returnErrorString:error];
-        // Return result to JavaScript
-        CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                          messageAsString:errorString];
-        [self.commandDelegate sendPluginResult:pluginResult callbackId:restorePurchaseCb];
-        restorePurchaseCb = NULL;
+    // Convert error code to String
+    int errorString = [self returnErrorCode:error];
+    // Return result to JavaScript
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
+                                                         messageAsInt:errorString];
+    for (NSString* callbackId in restorePurchaseCallbacks) {
+        [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
     }
-}
 
+    [restoredTransactions removeAllObjects];
+    [restorePurchaseCallbacks removeAllObjects];
+}
 
 - (void)paymentQueue:(SKPaymentQueue *)queue updatedTransactions:(NSArray *)transactions {
 
@@ -327,116 +380,82 @@
         switch (transaction.transactionState) {
 			case SKPaymentTransactionStatePurchasing:
                 WizLog(@"SKPaymentTransactionStatePurchasing");
-				continue;
-                
-            { case SKPaymentTransactionStatePurchased:
+				break;
+            case SKPaymentTransactionStateDeferred:
+                WizLog(@"SKPaymentTransactionStateDeferred");
+                break;
+            case SKPaymentTransactionStatePurchased: {
                 WizLog(@"SKPaymentTransactionStatePurchased");
-                // Immediately save to NSUserDefaults incase we cannot reach JavaScript in time
-                // or connection for server receipt verification is interupted
-                NSString *receipt = [[NSString alloc] initWithData:[transaction transactionReceipt] encoding:NSUTF8StringEncoding];
-                
-                // We requested this payment let's finish
-                NSDictionary *result = @{
-                     @"platform": @"ios",
-                     @"orderId": transaction.transactionIdentifier,
-                     @"receipt": receipt,
-                     @"productId": transaction.payment.productIdentifier,
-                     @"packageName": [[NSBundle mainBundle] bundleIdentifier]
-                };
-                
-                [self backupReceipt:result];
-
                 if (makePurchaseCb) {
-                   
-                    // Return result to JavaScript
-                    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
-                                                                  messageAsDictionary:result];
-                    [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
+                    [self sendTransaction:transaction toCallback:makePurchaseCb];
                     makePurchaseCb = NULL;
                     makePurchaseProductId = NULL;
                 }
+                [pendingTransactions setObject:transaction forKey:transaction.payment.productIdentifier];
                 break;
             }
+            case SKPaymentTransactionStateRestored:
+                // We restored some non-consumable transactions
+                WizLog(@"SKPaymentTransactionStateRestored");
+                if ([restorePurchaseCallbacks count] > 0) {
+                    [restoredTransactions addObject:transaction];
+                }
+                [pendingTransactions setObject:transaction forKey:transaction.payment.productIdentifier];
+                break;
             case SKPaymentTransactionStateFailed:
-            
-				error = transaction.error.localizedDescription;
-				errorCode = transaction.error.code;
-				WizLog(@"SKPaymentTransactionStateFailed %d %@", errorCode, error);
+                error = transaction.error.localizedDescription;
+                errorCode = transaction.error.code;
+                WizLog(@"SKPaymentTransactionStateFailed %zd %@", errorCode, error);
                 if (makePurchaseCb) {
                     // Return result to JavaScript
                     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                                      messageAsString:[self returnErrorString:transaction.error]];
+                                                                         messageAsInt:[self returnErrorCode:transaction.error]];
                     [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
                     makePurchaseCb = NULL;
                     makePurchaseProductId = NULL;
                 }
+                [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
                 break;
-                
-			case SKPaymentTransactionStateRestored: {
-                // We restored some non-consumable transactions add to receipt backup
-				WizLog(@"SKPaymentTransactionStateRestored");
-                NSString *receipt = [[NSString alloc] initWithData:[transaction transactionReceipt] encoding:NSUTF8StringEncoding];
-                NSDictionary *result = @{
-                     @"platform": @"ios",
-                     @"orderId": transaction.transactionIdentifier,
-                     @"receipt": receipt,
-                     @"productId": transaction.payment.productIdentifier,
-                     @"packageName": [[NSBundle mainBundle] bundleIdentifier]
-                };
-				[self backupReceipt:result];
-                break;
-            }
             default:
-				WizLog(@"SKPaymentTransactionStateInvalid");
+                WizLog(@"Invalid transaction state: %zd", transaction.transactionState);
                 if (makePurchaseCb) {
-                    // Return result to JavaScript
                     CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_ERROR
-                                                                      messageAsString:[self returnErrorString:transaction.error]];
+                                                                         messageAsInt:INVALID_TRANSACTION_STATE];
                     [self.commandDelegate sendPluginResult:pluginResult callbackId:makePurchaseCb];
                     makePurchaseCb = NULL;
                     makePurchaseProductId = NULL;
                 }
-                continue;
+                [[SKPaymentQueue defaultQueue] finishTransaction:transaction];
+                break;
         }
-        
-        // Finishing a transaction tells Store Kit that you’ve completed everything needed for the purchase.
-        // Unfinished transactions remain in the queue until they’re finished, and the transaction queue
-        // observer is called every time your app is launched so your app can finish the transactions.
-        // Your app needs to finish every transaction, regardles of whether the transaction succeeded or failed.
-		[[SKPaymentQueue defaultQueue] finishTransaction:transaction];
     }
 }
 
-- (NSString *)returnErrorString:(NSError *)error {
+- (int)returnErrorCode:(NSError *)error {
     // Default error SKErrorUnknown
-    NSString *errorString = @"unknownError";
+    int errorString = UNKNOWN_ERROR;
     // Indicates that an unknown or unexpected error occurred.
     if ([error.domain isEqualToString:@"SKErrorDomain"]) {
         switch (error.code) {
-            case 1:
-                // SKErrorClientInvalid
+            case SKErrorClientInvalid:
                 // Indicates that the client is not allowed to perform the attempted action.
-                errorString = @"invalidClient";
+                errorString = INVALID_CLIENT;
                 break;
-            case 2:
-                // SKErrorPaymentCancelled
+            case SKErrorPaymentCancelled:
                 // Indicates that the user cancelled a payment request.
-                errorString = @"userCancelled";
+                errorString = USER_CANCELLED;
                 break;
-            case 3:
-                // SKErrorPaymentInvalid
+            case SKErrorPaymentInvalid:
                 // Indicates that one of the payment parameters was not recognized by the Apple App Store.
-                errorString = @"invalidPayment";
+                errorString = INVALID_PAYMENT;
                 break;
-            case 4:
-                // SKErrorPaymentNotAllowed
+            case SKErrorPaymentNotAllowed:
                 // Indicates that the user is not allowed to authorise payments.
-                errorString = @"unauthorized";
+                errorString = UNAUTHORIZED;
                 break;
-            case 5:
-                // SKErrorStoreProductNotAvailable
+            case SKErrorStoreProductNotAvailable:
                 // Indicates that the requested product is not available in the store.
-                errorString = @"unknownProductId";
+                errorString = UNKNOWN_PRODUCT_ID;
                 break;
             default:
                 break;
