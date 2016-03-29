@@ -601,6 +601,7 @@ public class WizPurchasePlugin extends CordovaPlugin {
 							JSONObject jsonSku = skuDetails.toJson();
 							storeCurrency = jsonSku.getString("price_currency_code");
 						} catch (JSONException e) {
+							Log.d(TAG, "Price currency code could not be extracted from product " + requestedSku + " with error: " + e);
 						}
 					}
 
@@ -616,7 +617,9 @@ public class WizPurchasePlugin extends CordovaPlugin {
 						skuObject.put("json", skuDetails.toJson());
 						// Add the current sku details to the returning object
 						skusObject.put(skuDetails.getSku(), skuObject);
-					} catch (JSONException e) { }
+					} catch (JSONException e) {
+						Log.d(TAG, "Details of product " + requestedSku + " could not be formated to JSON. Error: " + e);
+					}
 				}
 
 				// At this point return the success for all we got (even an empty Inventory)
