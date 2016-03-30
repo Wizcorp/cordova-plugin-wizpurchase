@@ -1,96 +1,83 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    id="jp.wizcorp.phonegap.plugin.wizPurchase"
-    version="1.2.0">
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	id="cordova-plugin-wizpurchase"
+	version="1.2.0">
 
-    <name>Wizard Puchase Plugin</name>
-    <description>This plugin allows payments to be made on Android and iOS.</description>
-    <author>Ally Ogilvie - aogilvie@wizcorp.jp</author>
-    <keywords>wizcorp, wizard, purchase, iap, billing</keywords>
+	<name>WizPurchase</name>
+	<description>This plugin allows payments to be made on Android and iOS.</description>
+	<keywords>wizcorp, wizard, purchase, iap, billing</keywords>
 
-    <engines>
-        <engine name="cordova" version=">=3.3.0" />
-    </engines>
+	<engines>
+		<engine name="cordova" version=">=3.3.0" />
+	</engines>
 
-    <license>MIT</license>
+	<license>MIT</license>
 
-    <js-module src="www/phonegap/plugin/wizPurchasePlugin/wizPurchasePlugin.js" name="wizPurchase" target="phonegap/plugin/wizPurchase/wizPurchase.js">
-        <clobbers target="window.wizPurchase" />
-    </js-module>
-    <js-module src="www/phonegap/plugin/wizPurchasePlugin/WizPurchaseError.js" name="WizPurchaseError" target="phonegap/plugin/wizPurchase/WizPurchaseError.js">
-        <clobbers target="window.WizPurchaseError" />
-    </js-module>
+	<js-module src="www/WizPurchase.js" name="WizPurchase">
+		<clobbers target="window.wizPurchase" />
+	</js-module>
+	<js-module src="www/WizPurchaseError.js" name="WizPurchaseError">
+		<clobbers target="window.WizPurchaseError" />
+	</js-module>
 
-    <!-- ios -->
-    <platform name="ios">
+	<!-- ios -->
+	<platform name="ios">
 
-        <config-file target="config.xml" parent="/*">
-            <feature name="wizPurchasePlugin">
-                <param name="ios-package" value="WizPurchasePlugin" />
-                <param name="onload" value="true" />
-            </feature>
-        </config-file>
+		<config-file target="config.xml" parent="/*">
+			<feature name="WizPurchase">
+				<param name="ios-package" value="WizPurchase" />
+				<param name="onload" value="true" />
+			</feature>
+		</config-file>
 
-        <!-- Plugin files -->
-        <header-file src="platforms/ios/HelloCordova/Plugins/wizPurchasePlugin/WizPurchasePlugin.h" />
-        <source-file src="platforms/ios/HelloCordova/Plugins/wizPurchasePlugin/WizPurchasePlugin.m" />
+		<!-- Plugin files -->
+		<header-file src="src/ios/WizPurchase.h" />
+		<source-file src="src/ios/WizPurchase.m" />
 
-        <!-- Debug Logger -->
-        <header-file src="platforms/ios/HelloCordova/Plugins/wizPurchasePlugin/WizDebugLog.h" />
+		<!-- Debug Logger -->
+		<header-file src="src/ios/WizDebugLog.h" />
 
-        <framework src="StoreKit.framework" />
+		<framework src="StoreKit.framework" />
 
-    </platform>
+	</platform>
 
-    <!-- android -->
-    <platform name="android">
-        <preference name="BILLING_KEY"/>
+	<!-- android -->
+	<platform name="android">
+		<preference name="BILLING_KEY" />
 
-        <config-file target="res/xml/config.xml" parent="/*">
-            <feature name="wizPurchasePlugin" >
-                <param name="android-package" value="jp.wizcorp.phonegap.plugin.wizPurchase.WizPurchasePlugin"/>
-            </feature>
-        </config-file>
+		<config-file target="res/xml/config.xml" parent="/*">
+			<feature name="WizPurchase">
+				<param name="android-package" value="jp.wizcorp.wizpurchase.WizPurchase" />
+			</feature>
+		</config-file>
 
-        <config-file target="AndroidManifest.xml" parent="/manifest">
-            <uses-permission android:name="com.android.vending.BILLING" />
-        </config-file>
+		<config-file target="AndroidManifest.xml" parent="/manifest">
+			<uses-permission android:name="com.android.vending.BILLING" />
+		</config-file>
 
-        <!-- Plugin Class -->
-        <source-file src="platforms/android/src/jp/wizcorp/phonegap/plugin/wizPurchase/WizPurchasePlugin.java"
-                target-dir="src/jp/wizcorp/phonegap/plugin/wizPurchase"/>
-                
-        <!-- Billing Helper Classes -->
-        <source-file src="platforms/android/src/com/smartmobilesoftware/util/Base64.java"
-                target-dir="src/com/smartmobilesoftware/util"/>
-        <source-file src="platforms/android/src/com/smartmobilesoftware/util/Base64DecoderException.java"
-                target-dir="src/com/smartmobilesoftware/util"/>
-        <source-file src="platforms/android/src/com/smartmobilesoftware/util/IabException.java"
-                target-dir="src/com/smartmobilesoftware/util"/>
-        <source-file src="platforms/android/src/com/smartmobilesoftware/util/IabHelper.java"
-                target-dir="src/com/smartmobilesoftware/util"/>
-        <source-file src="platforms/android/src/com/smartmobilesoftware/util/IabResult.java"
-                target-dir="src/com/smartmobilesoftware/util"/>
-        <source-file src="platforms/android/src/com/smartmobilesoftware/util/Inventory.java"
-                target-dir="src/com/smartmobilesoftware/util"/>
-        <source-file src="platforms/android/src/com/smartmobilesoftware/util/Purchase.java"
-                target-dir="src/com/smartmobilesoftware/util"/>
-        <source-file src="platforms/android/src/com/smartmobilesoftware/util/Security.java"
-                target-dir="src/com/smartmobilesoftware/util"/>
-        <source-file src="platforms/android/src/com/smartmobilesoftware/util/SkuDetails.java"
-                target-dir="src/com/smartmobilesoftware/util"/>              
+		<!-- Plugin Class -->
+		<source-file src="src/android/WizPurchase.java" target-dir="src/jp/wizcorp/wizpurchase" />
 
-        <!-- Billing Classes -->
-        <source-file src="platforms/android/src/com/android/vending/billing/IInAppBillingService.aidl"
-                target-dir="src/com/android/vending/billing"/>
+		<!-- Billing Helper Classes -->
+		<source-file src="src/android/com/smartmobilesoftware/util/Base64.java" target-dir="src/com/smartmobilesoftware/util" />
+		<source-file src="src/android/com/smartmobilesoftware/util/Base64DecoderException.java" target-dir="src/com/smartmobilesoftware/util" />
+		<source-file src="src/android/com/smartmobilesoftware/util/IabException.java" target-dir="src/com/smartmobilesoftware/util" />
+		<source-file src="src/android/com/smartmobilesoftware/util/IabHelper.java" target-dir="src/com/smartmobilesoftware/util" />
+		<source-file src="src/android/com/smartmobilesoftware/util/IabResult.java" target-dir="src/com/smartmobilesoftware/util" />
+		<source-file src="src/android/com/smartmobilesoftware/util/Inventory.java" target-dir="src/com/smartmobilesoftware/util" />
+		<source-file src="src/android/com/smartmobilesoftware/util/Purchase.java" target-dir="src/com/smartmobilesoftware/util" />
+		<source-file src="src/android/com/smartmobilesoftware/util/Security.java" target-dir="src/com/smartmobilesoftware/util" />
+		<source-file src="src/android/com/smartmobilesoftware/util/SkuDetails.java" target-dir="src/com/smartmobilesoftware/util" />
 
-        <!-- Billing Key String Holder -->
-        <source-file src="platforms/android/res/values/billing_key.xml"
-                target-dir="res/values/"/>
-        <config-file target="res/values/billing_key.xml" parent="/*">
-            <string name="billing_key">$BILLING_KEY</string>
-        </config-file>
-    </platform>
+		<!-- Billing Classes -->
+		<source-file src="src/android/com/android/vending/billing/IInAppBillingService.aidl" target-dir="src/com/android/vending/billing" />
+
+		<!-- Billing Key String Holder -->
+		<resource-file src="src/android/res/values/billing_key.xml" target="res/values/billing_key.xml" />
+		<config-file target="res/values/billing_key.xml" parent="/*">
+			<string name="billing_key">$BILLING_KEY</string>
+		</config-file>
+	</platform>
 
 </plugin>
