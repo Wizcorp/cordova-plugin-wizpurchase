@@ -577,60 +577,48 @@ public class WizPurchasePlugin extends CordovaPlugin {
 
 			// Check if we have the handler
 			if (mProductDetailCbContext != null) {
-				// We will gather here any wrong sku and log it out later.
-				String wrongSku = "";
-				// Line separator instance
-				String newline = System.getProperty("line.separator");
-
-				// Get the returned list of SkuDetails from Google API.
-				// This is the Full Developer Inventory, regardless the incorrect skus in our query
-				List<SkuDetails>skuList = inventory.getAllProducts();
-
 				// Build the return Object
 				JSONObject skusObject = new JSONObject();
 				String storeCurrency = null;
 
-				Log.d(TAG, "skuList: " + skuList);
-				if (skuList != null && !skuList.isEmpty()) {
-					// Iterate over the requestDetailSkus and check we have info for each
-					Iterator<String> requestSkuIter = mRequestDetailSkus.iterator();
+				// Iterate over the requestDetailSkus and check we have info for each
+				Iterator<String> requestSkuIter = mRequestDetailSkus.iterator();
 
-					// Iterate all skus
-					while (requestSkuIter.hasNext()) {
-						for (SkuDetails sku : skuList) {
-							if (!sku.getSku().equalsIgnoreCase(requestSkuIter.next()) ) {
-								// If we already have invalid skus add a new line
-								if (!wrongSku.isEmpty())wrongSku += newline;
-								// Add the incorrect sku to our list
-								wrongSku += "sku not found in Google Inventory: " + sku;
-							} else {
-								if (storeCurrency == null) {
-									try {
-										JSONObject jsonSku = sku.toJson();
-										storeCurrency = jsonSku.getString("price_currency_code");
-									} catch (JSONException e) {
-									}
-								}
-								// Build the sku details object
-								JSONObject skuObject = new JSONObject();
-								try {
-									// Fill the sku details
-									skuObject.put("productId", sku.getSku());
-									skuObject.put("price", sku.getPrice());
-									skuObject.put("priceMicros", sku.getPriceMicros());
-									skuObject.put("description", sku.getDescription());
-									skuObject.put("name", sku.getTitle());
-									skuObject.put("json", sku.toJson());
-									// Add the current sku details to the returning object
-									skusObject.put(sku.getSku(), skuObject);
-								} catch (JSONException e) { }
-							}
+				// Iterate all skus
+				while (requestSkuIter.hasNext()) {
+					String requestedSku = requestSkuIter.next();
+					SkuDetails skuDetails = inventory.getSkuDetails(requestedSku);
+
+					if (skuDetails == null) {
+						Log.d(TAG, "Invalid product id: " + requestedSku);
+						mProductDetailCbContext.error(UNKNOWN_PRODUCT_ID);
+						mProductDetailCbContext = null;
+						return;
+					}
+
+					if (storeCurrency == null) {
+						try {
+							JSONObject jsonSku = skuDetails.toJson();
+							storeCurrency = jsonSku.getString("price_currency_code");
+						} catch (JSONException e) {
+							Log.d(TAG, "Price currency code could not be extracted from product " + requestedSku + " with error: " + e);
 						}
 					}
-					// If we have wrong sku log it out for the developer, this should be enough otherwise a return object should be issue
-					if (!wrongSku.isEmpty()){
-						Log.d(TAG, "One or more Sku were not found in Google Inventory");
-						Log.d(TAG, wrongSku);
+
+					// Build the sku details object
+					JSONObject skuObject = new JSONObject();
+					try {
+						// Fill the sku details
+						skuObject.put("productId", skuDetails.getSku());
+						skuObject.put("price", skuDetails.getPrice());
+						skuObject.put("priceMicros", skuDetails.getPriceMicros());
+						skuObject.put("description", skuDetails.getDescription());
+						skuObject.put("name", skuDetails.getTitle());
+						skuObject.put("json", skuDetails.toJson());
+						// Add the current sku details to the returning object
+						skusObject.put(skuDetails.getSku(), skuObject);
+					} catch (JSONException e) {
+						Log.d(TAG, "Details of product " + requestedSku + " could not be formated to JSON. Error: " + e);
 					}
 				}
 
