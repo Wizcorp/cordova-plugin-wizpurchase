@@ -1,4 +1,4 @@
-phonegap-plugin-wizPurchase
+cordova-plugin-wizpurchase
 ===========================
 
 A cross-platform mobile application payment API for iOS IAP and Android Billing.
@@ -10,7 +10,7 @@ A cross-platform mobile application payment API for iOS IAP and Android Billing.
 ## Major API changes warning
 ***API changed since v1.x.x. Please be sure you target the right version. There are no API changes except on new major versions.
 If your plugin dependency points directly to Github, make sure to have the right version by adding it at the end of the URL, e.g.:***
-https://github.com/Wizcorp/phonegap-plugin-wizPurchase#v1.2.0
+https://github.com/Wizcorp/cordova-plugin-wizpurchase#v1.2.0
 
 -----
 
@@ -25,17 +25,17 @@ https://github.com/Wizcorp/phonegap-plugin-wizPurchase#v1.2.0
 
 ### via CLI
 
-	cordova plugin add https://github.com/Wizcorp/phonegap-plugin-wizPurchase --variable BILLING_KEY="YOUR_BILLING_KEY"
+	cordova plugin add https://github.com/Wizcorp/cordova-plugin-wizpurchase --variable BILLING_KEY="YOUR_BILLING_KEY"
 
 ### via config.xml
 
-	<plugin name="jp.wizcorp.phonegap.plugin.wizPurchase" spec="https://github.com/Wizcorp/phonegap-plugin-wizPurchase">
+	<plugin name="cordova-plugin-wizpurchase" spec="1.2.0">
 	    <variable name="BILLING_KEY" value="YOUR_BILLING_KEY" />
 	</plugin>
 	
 ### via Phonegap Build (PGB)
 
-	<plugin name="jp.wizcorp.phonegap.plugin.wizPurchase" spec="https://github.com/Wizcorp/phonegap-plugin-wizPurchase">
+	<plugin name="cordova-plugin-wizpurchase" spec="1.2.0">
 			<param name="BILLING_KEY" value="YOUR_BILLING_KEY" />
 	</plugin>
 
