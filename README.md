@@ -80,13 +80,18 @@ You need to specify your billing key **only** if you need Android support.
 Purchase objects contain product information that can be used for verification.
 
 ```
-	{
-		platform: "ios" or "android",
-		orderId: transaction identifier for iOS or order ID for Android,
-		receipt: purchaseToken or ios receipt as String,
-		productId: "sword001",
-		packageName: "jp.wizcorp.game"
-	}
+{
+	platform: "ios" or "android",
+	orderId: transaction identifier for iOS or order ID for Android,
+	receipt: purchaseToken or ios receipt as String,
+	productId: "sword001",
+	packageName: "jp.wizcorp.game",
+	purchaseTime: Android-specific, time the product was purchased in ms since the epoch (Jan 1, 1970),
+	purchaseState: Android-specific, "0" (purchased), "1" (canceled) or "2" (refunded),
+	json: Android-specific, original JSON purchase data,
+	developerPayload: Android-specific, string specified by the developer in the purchase request,
+	signature: Android-specific, signature of the purchase data signed with the private key of the developer
+}
 ```
 
 ## JavaScript APIs
