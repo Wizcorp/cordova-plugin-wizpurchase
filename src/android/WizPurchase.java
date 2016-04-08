@@ -470,7 +470,7 @@ public class WizPurchase extends CordovaPlugin {
 		JSONArray jsonPurchaseList = new JSONArray();
 		// Iterate all products
 		for (Purchase p : purchaseList) {
-			jsonPurchaseList.put(new JSONObject(p.getOriginalJson()));
+			jsonPurchaseList.put(convertToPurchaseObject(p));
 		}
 		// Return the JSON list
 		return jsonPurchaseList;
@@ -490,11 +490,31 @@ public class WizPurchase extends CordovaPlugin {
 		// Iterate all products
 		for (Purchase p : purchaseList) {
 			if (pendingPurchasesCache.getBoolean(p.getSku(), false)) {
-				jsonPurchaseList.put(new JSONObject(p.getOriginalJson()));
+				jsonPurchaseList.put(convertToPurchaseObject(p));
 			}
 		}
 		// Return the JSON list
 		return jsonPurchaseList;
+	}
+
+	/**
+	 * Convert a Purchase object in Java-land to a JSON Purchase object to be returned to JS-land
+	 *
+	 * @param purchase Purchase to transform to a JSON object
+	 **/
+	JSONObject convertToPurchaseObject(Purchase purchase) throws JSONException {
+		JSONObject purchaseObject = new JSONObject();
+		purchaseObject.put("platform", "android");
+		purchaseObject.put("orderId", purchase.getOrderId());
+		purchaseObject.put("packageName", cordova.getActivity().getPackageName());
+		purchaseObject.put("productId", purchase.getSku());
+		purchaseObject.put("purchaseTime", purchase.getPurchaseTime());
+		purchaseObject.put("purchaseState", purchase.getPurchaseState());
+		purchaseObject.put("developerPayload", purchase.getDeveloperPayload());
+		purchaseObject.put("receipt", purchase.getToken());
+		purchaseObject.put("json", purchase.getOriginalJson());
+		purchaseObject.put("signature", purchase.getSignature());
+		return purchaseObject;
 	}
 
 	/**
@@ -525,37 +545,25 @@ public class WizPurchase extends CordovaPlugin {
 			// Check if we have the handler
 			if (mRestoreAllCbContext != null) {
 				// This array holds Google data
-				JSONArray jsonSkuList;
+				List<Purchase> purchaseList;
 
 				// Create our new array for JavaScript
-				JSONArray skuList = new JSONArray();
+				JSONArray jsonPurchaseList = new JSONArray();
 				try {
 					// Populate with Google data
-					jsonSkuList = getPurchases();
+					purchaseList = inventory.getAllPurchases();
 
 					// Rebuild Object for JavaScript
-					for (int i = 0; i < jsonSkuList.length(); i++) {
-						JSONObject skuObject = new JSONObject();
-						skuObject = jsonSkuList.getJSONObject(i);
-
+					for (Purchase purchase : purchaseList) {
 						// Create return Object
-						JSONObject pendingObject = new JSONObject();
-						pendingObject.putOpt("platform", "android");
-						pendingObject.putOpt("orderId", skuObject.getString("orderId"));
-						pendingObject.putOpt("packageName", skuObject.getString("packageName"));
-						pendingObject.putOpt("productId", skuObject.getString("productId"));
-						pendingObject.putOpt("purchaseTime", skuObject.getString("purchaseTime"));
-						pendingObject.putOpt("purchaseState", skuObject.getString("purchaseState"));
-						pendingObject.putOpt("developerPayload", skuObject.getString("developerPayload"));
-						pendingObject.putOpt("receipt", skuObject.getString("purchaseToken"));
-
+						JSONObject purchaseObject = convertToPurchaseObject(purchase);
 						// Add new object into array
-						skuList.put(pendingObject);
+						jsonPurchaseList.put(purchaseObject);
 					}
 				} catch (JSONException e) { }
 
 				// Return result
-				mRestoreAllCbContext.success(skuList);
+				mRestoreAllCbContext.success(jsonPurchaseList);
 				// Clear the handler instance
 				mRestoreAllCbContext = null;
 			}
@@ -663,15 +671,9 @@ public class WizPurchase extends CordovaPlugin {
 
 				Log.d(TAG, "Purchase successful.");
 
-				// Build the return Object
-				JSONObject purchaseResult = new JSONObject();
 				try {
-					purchaseResult.put("platform", "android");
-					purchaseResult.put("orderId", purchase.getOrderId());
-					purchaseResult.put("developerPayload", purchase.getDeveloperPayload());
-					purchaseResult.put("receipt", purchase.getToken());
-					purchaseResult.put("productId", purchase.getSku());
-					purchaseResult.put("packageName", cordova.getActivity().getPackageName());
+					// Build the return Object
+					JSONObject purchaseResult = convertToPurchaseObject(purchase);
 					// Return the object
 					mMakePurchaseCbContext.success(purchaseResult);
 				} catch (JSONException e) { }
