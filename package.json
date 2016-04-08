@@ -1,0 +1,38 @@
+{
+  "name": "cordova-plugin-wizpurchase",
+  "version": "1.2.0",
+  "description": "This plugin allows payments to be made on Android and iOS.",
+  "cordova": {
+    "id": "cordova-plugin-wizpurchase",
+    "platforms": [
+      "ios",
+      "android"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Wizcorp/cordova-plugin-wizpurchase"
+  },
+  "keywords": [
+    "wizcorp",
+    "wizard",
+    "purchase",
+    "iap",
+    "billing",
+    "ecosystem:cordova",
+    "cordova-ios",
+    "cordova-android"
+  ],
+  "engines": [
+    {
+      "name": "cordova",
+      "version": ">=3.3.0"
+    }
+  ],
+  "author": "Wizcorp Inc.",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Wizcorp/cordova-plugin-wizpurchase/issues"
+  },
+  "homepage": "https://github.com/Wizcorp/cordova-plugin-wizpurchase#readme"
+}
