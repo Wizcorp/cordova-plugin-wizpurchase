@@ -216,11 +216,12 @@ public class WizPurchase extends CordovaPlugin {
 	private void restoreAllPurchases(CallbackContext callbackContext) throws JSONException {
 		// Check if the Inventory is available
 		if (mInventory != null) {
-			// Get and return any previously purchased Items
-			JSONArray jsonSkuList = new JSONArray();
-			jsonSkuList = getPurchases();
+			// Get the list of owned items
+			List<Purchase> purchaseList = mInventory.getAllPurchases();
+			setPurchasesAsPending(purchaseList);
+			JSONArray jsonPurchaseList = convertToJSONArray(purchaseList);
 			// Return result
-			callbackContext.success(jsonSkuList);
+			callbackContext.success(jsonPurchaseList);
 		} else {
 			// Initialise the Plug-In
 			cordova.getThreadPool().execute(new Runnable() {
@@ -459,21 +460,19 @@ public class WizPurchase extends CordovaPlugin {
 	}
 
 	/**
-	 * Get the list of purchases
+	 * Set every purchase of the specified list as pending
 	 *
+	 * @param purchaseList List of purchases to set as pending
 	 **/
-	private JSONArray getPurchases() throws JSONException {
-		// Get the list of owned items
-		List<Purchase> purchaseList = mInventory.getAllPurchases();
+	private void setPurchasesAsPending(List<Purchase> purchaseList) {
+		SharedPreferences pendingPurchasesCache = cordova.getActivity().getSharedPreferences(PENDING_PURCHASES_CACHE_NAME, 0);
+		SharedPreferences.Editor editor = pendingPurchasesCache.edit();
 
-		// Convert the java list to JSON
-		JSONArray jsonPurchaseList = new JSONArray();
-		// Iterate all products
 		for (Purchase p : purchaseList) {
-			jsonPurchaseList.put(convertToPurchaseObject(p));
+			editor.putBoolean(p.getSku(), true);
 		}
-		// Return the JSON list
-		return jsonPurchaseList;
+
+		editor.commit();
 	}
 
 	/**
@@ -490,8 +489,24 @@ public class WizPurchase extends CordovaPlugin {
 		// Iterate all products
 		for (Purchase p : purchaseList) {
 			if (pendingPurchasesCache.getBoolean(p.getSku(), false)) {
-				jsonPurchaseList.put(convertToPurchaseObject(p));
+				jsonPurchaseList.put(convertToJSONObject(p));
 			}
+		}
+		// Return the JSON list
+		return jsonPurchaseList;
+	}
+
+	/**
+	 * Convert a List of Purchase objects in Java-land to an array of JSON Purchase objects to be returned to JS-land
+	 *
+	 * @param purchase List of purchases to transform to a JSON array
+	 **/
+	JSONArray convertToJSONArray(List<Purchase> purchaseList) throws JSONException {
+		// Convert the java list to JSON
+		JSONArray jsonPurchaseList = new JSONArray();
+		// Iterate all products
+		for (Purchase p : purchaseList) {
+			jsonPurchaseList.put(convertToJSONObject(p));
 		}
 		// Return the JSON list
 		return jsonPurchaseList;
@@ -502,7 +517,7 @@ public class WizPurchase extends CordovaPlugin {
 	 *
 	 * @param purchase Purchase to transform to a JSON object
 	 **/
-	JSONObject convertToPurchaseObject(Purchase purchase) throws JSONException {
+	JSONObject convertToJSONObject(Purchase purchase) throws JSONException {
 		JSONObject purchaseObject = new JSONObject();
 		purchaseObject.put("platform", "android");
 		purchaseObject.put("orderId", purchase.getOrderId());
@@ -556,7 +571,7 @@ public class WizPurchase extends CordovaPlugin {
 					// Rebuild Object for JavaScript
 					for (Purchase purchase : purchaseList) {
 						// Create return Object
-						JSONObject purchaseObject = convertToPurchaseObject(purchase);
+						JSONObject purchaseObject = convertToJSONObject(purchase);
 						// Add new object into array
 						jsonPurchaseList.put(purchaseObject);
 					}
@@ -673,7 +688,7 @@ public class WizPurchase extends CordovaPlugin {
 
 				try {
 					// Build the return Object
-					JSONObject purchaseResult = convertToPurchaseObject(purchase);
+					JSONObject purchaseResult = convertToJSONObject(purchase);
 					// Return the object
 					mMakePurchaseCbContext.success(purchaseResult);
 				} catch (JSONException e) { }
