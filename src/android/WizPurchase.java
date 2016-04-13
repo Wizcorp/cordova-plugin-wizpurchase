@@ -441,21 +441,21 @@ public class WizPurchase extends CordovaPlugin {
 		}
 
 		Log.d(TAG, "Purchase is: " + purchase.toString());
-		String purchaseSku = purchase.getSku();
 
 		SharedPreferences pendingPurchasesCache = cordova.getActivity().getSharedPreferences(PENDING_PURCHASES_CACHE_NAME, 0);
-		if (!pendingPurchasesCache.contains(purchaseSku)) {
+		if (!pendingPurchasesCache.contains(purchase.getSku())) {
 			mFinishPurchaseCbContext.error(PURCHASE_NOT_PENDING);
 			mFinishPurchaseCbContext = null;
 			return;
 		}
-		SharedPreferences.Editor editor = pendingPurchasesCache.edit();
-		editor.remove(purchaseSku);
-		editor.commit();
 
 		if (isConsumable) {
 			// Process the consumption asynchronously
 			mHelper.consumeAsync(purchase, mConsumeFinishedListener);
+		} else {
+			unsetPurchaseAsPending(purchase);
+			mFinishPurchaseCbContext.success();
+			mFinishPurchaseCbContext = null;
 		}
 	}
 
@@ -472,6 +472,18 @@ public class WizPurchase extends CordovaPlugin {
 			editor.putBoolean(p.getSku(), true);
 		}
 
+		editor.commit();
+	}
+
+	/**
+	 * Remove a purchase from pending purchases' list
+	 *
+	 * @param purchase Purchase to unset as pending
+	 **/
+	void unsetPurchaseAsPending(Purchase purchase) {
+		SharedPreferences pendingPurchasesCache = cordova.getActivity().getSharedPreferences(PENDING_PURCHASES_CACHE_NAME, 0);
+		SharedPreferences.Editor editor = pendingPurchasesCache.edit();
+		editor.remove(purchase.getSku());
 		editor.commit();
 	}
 
@@ -717,8 +729,10 @@ public class WizPurchase extends CordovaPlugin {
 
 			// Check if we have a successful consumption
 			if (result.isSuccess()) {
-				// After consumption remove the item from the inventory
+				// After consumption remove the item from the inventory and from pending list
 				mInventory.erasePurchase(purchase.getSku());
+				unsetPurchaseAsPending(purchase);
+
 				Log.d(TAG, "Consumption successful. .");
 
 				// Check if we have the handler
