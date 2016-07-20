@@ -34,6 +34,10 @@ var WizPurchase = {
 
 	restoreAllPurchases: function (s, f) {
 		exec(s, f, "WizPurchase", "restoreAllPurchases", []);
+	},
+
+	refreshReceipt: function (s, f) {
+		exec(s, f, "WizPurchase", "refreshReceipt", []);
 	}
 };
 

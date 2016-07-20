@@ -187,6 +187,13 @@ or empty `{ }` if productIds was an empty array.
 
 - *Return* failure with error as the only argument
 
+### refreshReceipt(Function success, Function failure)
+
+Refresh the receipt on iOS, do nothing on Android.
+
+- *Return* success
+- *Return* failure with error
+
 #### Security notes (Android)
 
 *** You (the developer) should verify that the orderId is a unique value that you have not previously processed, and the developerPayload string matches the token that you sent previously with the purchase request. As a further security precaution, you should perform the verification on your own secure server. ***
@@ -221,7 +228,7 @@ Failure callbacks return an error as an integer. See the following error table:
 |   22 | `INVALID_CLIENT`            | Indicates that the client is not allowed to perform the attempted action                               |
 |   23 | `INVALID_PAYMENT`           | Indicates that one of the payment parameters was not recognized                                        |
 |   24 | `UNAUTHORIZED`              | Indicates that the user is not allowed to authorise payments (e.g. parental lock)                      |
-|   24 | `RECEIPT_REFRESH_FAILED`    |                                                                                                        |
+|   25 | `RECEIPT_REFRESH_FAILED`    |                                                                                                        |
 
 ======
 Ref Links

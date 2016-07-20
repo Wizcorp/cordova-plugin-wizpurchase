@@ -185,6 +185,10 @@
     [receiptRefreshRequest start];
 }
 
+- (void)refreshReceipt:(CDVInvokedUrlCommand *)command {
+    [self refreshReceipt:command.callbackId result:[NSNull null]];
+}
+
 - (void)fetchProducts:(NSArray *)productIdentifiers {
     WizLog(@"Fetching product information");
     // Build a SKProductsRequest for the identifiers provided
@@ -214,6 +218,8 @@
             } else if ([result isKindOfClass:[NSArray class]]) {
                 pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK
                                                   messageAsArray:[self addReceiptToTransactionResults:receipt results:result]];
+            } else if ([result isEqual:[NSNull null]]) {
+                pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
             }
             [self.commandDelegate sendPluginResult:pluginResult callbackId:callbackId];
         }
@@ -373,14 +379,14 @@
 
 - (void)paymentQueue:(SKPaymentQueue *)queue updatedTransactions:(NSArray *)transactions {
 
-	NSInteger errorCode = 0; // Set default unknown error
+    NSInteger errorCode = 0; // Set default unknown error
     NSString *error;
     for (SKPaymentTransaction *transaction in transactions) {
         
         switch (transaction.transactionState) {
-			case SKPaymentTransactionStatePurchasing:
+            case SKPaymentTransactionStatePurchasing:
                 WizLog(@"SKPaymentTransactionStatePurchasing");
-				break;
+                break;
             case SKPaymentTransactionStateDeferred:
                 WizLog(@"SKPaymentTransactionStateDeferred");
                 break;
