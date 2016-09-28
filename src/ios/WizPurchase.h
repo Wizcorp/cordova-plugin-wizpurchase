@@ -57,5 +57,6 @@ typedef int CDVWizPurchaseError;
 - (void)finishPurchase:(CDVInvokedUrlCommand *)command;
 - (void)getPendingPurchases:(CDVInvokedUrlCommand *)command;
 - (void)restoreAllPurchases:(CDVInvokedUrlCommand *)command;
+- (void)refreshReceipt:(CDVInvokedUrlCommand *)command;
 
 @end
