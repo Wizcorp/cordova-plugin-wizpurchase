@@ -62,6 +62,8 @@ public class WizPurchase extends CordovaPlugin {
 	CallbackContext mGetPendingCbContext;
 	CallbackContext mFinishPurchaseCbContext;
 
+	// Name of SharedPreferences where we store started purchases
+	public static final String STARTED_PURCHASES_CACHE_NAME = "WizPurchaseStartedPurchases";
 	// Name of SharedPreferences where we store purchases' pending state
 	public static final String PENDING_PURCHASES_CACHE_NAME = "WizPurchasePendingPurchases";
 
@@ -412,6 +414,7 @@ public class WizPurchase extends CordovaPlugin {
 	 * @param sku Product Sku to be purchase
 	 **/
 	private void buy(final String sku) {
+		setStartedPurchase(sku, true);
 		// Process the purchase for the given product id and developerPayload
 		mHelper.launchPurchaseFlow(
 				cordova.getActivity(),
@@ -460,6 +463,35 @@ public class WizPurchase extends CordovaPlugin {
 			mFinishPurchaseCbContext.success();
 			mFinishPurchaseCbContext = null;
 		}
+	}
+
+	private void checkStartedPurchases(Inventory inventory) {
+		List<Purchase> startedPurchases = new ArrayList<Purchase>();
+
+		SharedPreferences startedPurchasesCache = cordova.getActivity().getSharedPreferences(STARTED_PURCHASES_CACHE_NAME, 0);
+		List<Purchase> allPurchases = inventory.getAllPurchases();
+		for (Purchase purchase : allPurchases) {
+			if (startedPurchasesCache.getBoolean(purchase.getSku(), false)) {
+				startedPurchases.add(purchase);
+			}
+		}
+
+		setPurchasesAsPending(startedPurchases);
+
+		SharedPreferences.Editor editor = startedPurchasesCache.edit();
+		editor.clear();
+		editor.commit();
+	}
+
+	private void setStartedPurchase(String productId, boolean hasStartedPurchase) {
+		SharedPreferences startedPurchasesCache = cordova.getActivity().getSharedPreferences(STARTED_PURCHASES_CACHE_NAME, 0);
+		SharedPreferences.Editor editor = startedPurchasesCache.edit();
+		if (hasStartedPurchase) {
+			editor.putBoolean(productId, true);
+		} else {
+			editor.remove(productId);
+		}
+		editor.commit();
 	}
 
 	/**
@@ -569,8 +601,12 @@ public class WizPurchase extends CordovaPlugin {
 		public void onQueryInventoryFinished(IabResult result, Inventory inventory) {
 			Log.d(TAG, "Inside mGotInventoryListener");
 			// Check if there is error and update the Inventory
-			if (!hasErrorsAndUpdateInventory(result, inventory)) {}
+			if (hasErrorsAndUpdateInventory(result, inventory)) {
+				return;
+			}
 			Log.d(TAG, "Query inventory was successful.");
+
+			checkStartedPurchases(inventory);
 
 			// Check if we have the handler
 			if (mRestoreAllCbContext != null) {
@@ -612,6 +648,8 @@ public class WizPurchase extends CordovaPlugin {
 				return;
 			}
 			Log.d(TAG, "Query details was successful." + result.toString());
+
+			checkStartedPurchases(inventory);
 
 			// Check if we have the handler
 			if (mProductDetailCbContext != null) {
@@ -685,6 +723,8 @@ public class WizPurchase extends CordovaPlugin {
 	IabHelper.OnIabPurchaseFinishedListener mPurchaseFinishedListener = new IabHelper.OnIabPurchaseFinishedListener() {
 		public void onIabPurchaseFinished(IabResult result, Purchase purchase) {
 			Log.d(TAG, "Purchase finished: " + result + ", purchase: " + purchase);
+
+			setStartedPurchase(purchase.getSku(), false);
 
 			// Check if we have the handler
 			if (mMakePurchaseCbContext != null) {
