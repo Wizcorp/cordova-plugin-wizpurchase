@@ -29,13 +29,13 @@ https://github.com/Wizcorp/cordova-plugin-wizpurchase#v1.2.0
 
 ### via config.xml
 
-	<plugin name="cordova-plugin-wizpurchase" spec="2.1.0">
+	<plugin name="cordova-plugin-wizpurchase" spec="2.1.1">
 	    <variable name="BILLING_KEY" value="YOUR_BILLING_KEY" />
 	</plugin>
 	
 ### via Phonegap Build (PGB)
 
-	<plugin name="cordova-plugin-wizpurchase" spec="2.1.0">
+	<plugin name="cordova-plugin-wizpurchase" spec="2.1.1">
 			<param name="BILLING_KEY" value="YOUR_BILLING_KEY" />
 	</plugin>
 
