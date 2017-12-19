@@ -724,41 +724,43 @@ public class WizPurchase extends CordovaPlugin {
 		public void onIabPurchaseFinished(IabResult result, Purchase purchase) {
 			Log.d(TAG, "Purchase finished: " + result + ", purchase: " + purchase);
 
-			setStartedPurchase(purchase.getSku(), false);
-
-			// Check if we have the handler
-			if (mMakePurchaseCbContext != null) {
-				// Check if there are purchase errors
-				if (result.isFailure()) {
+			// Check if there are purchase errors
+			if (result.isFailure()) {
+				// Check if we have the handler
+				if (mMakePurchaseCbContext != null) {
 					// Get the Error message
 					int errorCode = returnErrorCode(result.getResponse());
 					// Dispatch the Error event
 					mMakePurchaseCbContext.error(errorCode);
 					// Clear the handler and stop processing
 					mMakePurchaseCbContext = null;
-					return;
 				}
-
+			} else {
 				Log.d(TAG, "Purchase successful.");
 
-				try {
-					// Build the return Object
-					JSONObject purchaseResult = convertToJSONObject(purchase);
-					// Return the object
-					mMakePurchaseCbContext.success(purchaseResult);
-				} catch (JSONException e) { }
-				// Clear the handler
-				mMakePurchaseCbContext = null;
+				setStartedPurchase(purchase.getSku(), false);
+
+				// Check if we have the handler
+				if (mMakePurchaseCbContext != null) {
+					try {
+						// Build the return Object
+						JSONObject purchaseResult = convertToJSONObject(purchase);
+						// Return the object
+						mMakePurchaseCbContext.success(purchaseResult);
+					} catch (JSONException e) { }
+					// Clear the handler
+					mMakePurchaseCbContext = null;
+				}
+
+				// Set the purchase has pending in SharedPreferences
+				SharedPreferences pendingPurchasesCache = cordova.getActivity().getSharedPreferences(PENDING_PURCHASES_CACHE_NAME, 0);
+				SharedPreferences.Editor editor = pendingPurchasesCache.edit();
+				editor.putBoolean(purchase.getSku(), true);
+				editor.commit();
+
+				// Add the purchase to the inventory
+				mInventory.addPurchase(purchase);
 			}
-
-			// Set the purchase has pending in SharedPreferences
-			SharedPreferences pendingPurchasesCache = cordova.getActivity().getSharedPreferences(PENDING_PURCHASES_CACHE_NAME, 0);
-			SharedPreferences.Editor editor = pendingPurchasesCache.edit();
-			editor.putBoolean(purchase.getSku(), true);
-			editor.commit();
-
-			// Add the purchase to the inventory
-			mInventory.addPurchase(purchase);
 		}
 	};
 
