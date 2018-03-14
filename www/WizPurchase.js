@@ -38,6 +38,10 @@ var WizPurchase = {
 
 	refreshReceipt: function (s, f) {
 		exec(s, f, "WizPurchase", "refreshReceipt", []);
+	},
+
+	setApplicationUsername: function (applicationUsername, s, f) {
+		exec(s, f, "WizPurchase", "setApplicationUsername", [ applicationUsername ]);
 	}
 };
 

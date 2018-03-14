@@ -178,6 +178,9 @@ public class WizPurchase extends CordovaPlugin {
 		} else if (action.equalsIgnoreCase("refreshReceipt")) {
 			callbackContext.success();
 			return true;
+		} else if (action.equalsIgnoreCase("setApplicationUsername")) {
+			callbackContext.success();
+			return true;
 		}
 		return false;
 	}
