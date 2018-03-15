@@ -12,6 +12,8 @@
 @implementation WizPurchase
 
 - (void)pluginInitialize {
+    applicationUsername = nil;
+
     restoredTransactions = [[NSMutableArray alloc] init];
     pendingTransactions = [[NSMutableDictionary alloc] init];
 
