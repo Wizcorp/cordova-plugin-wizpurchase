@@ -2,7 +2,7 @@
 <plugin xmlns="http://www.phonegap.com/ns/plugins/1.0"
 	xmlns:android="http://schemas.android.com/apk/res/android"
 	id="cordova-plugin-wizpurchase"
-	version="2.1.2">
+	version="2.2.0">
 
 	<name>WizPurchase</name>
 	<description>This plugin allows payments to be made on Android and iOS.</description>
