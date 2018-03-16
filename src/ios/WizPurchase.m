@@ -12,6 +12,8 @@
 @implementation WizPurchase
 
 - (void)pluginInitialize {
+    applicationUsername = nil;
+
     restoredTransactions = [[NSMutableArray alloc] init];
     pendingTransactions = [[NSMutableDictionary alloc] init];
 
@@ -67,8 +69,18 @@
     [self sendTransactions:[pendingTransactions allValues] toCallback:command.callbackId];
 }
 
+- (void)setApplicationUsername:(CDVInvokedUrlCommand *)command {
+    applicationUsername = [command.arguments objectAtIndex:0];
+
+    CDVPluginResult *pluginResult = [CDVPluginResult resultWithStatus:CDVCommandStatus_OK];
+    [self.commandDelegate sendPluginResult:pluginResult callbackId:command.callbackId];
+}
+
 - (void)purchaseProduct:(SKProduct *)product {
     SKMutablePayment *payment = [SKMutablePayment paymentWithProduct:product];
+    if ([applicationUsername length] != 0) {
+        payment.applicationUsername = applicationUsername;
+    }
     [[SKPaymentQueue defaultQueue] addPayment:payment];
 }
 

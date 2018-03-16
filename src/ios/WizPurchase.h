@@ -48,6 +48,7 @@ typedef int CDVWizPurchaseError;
     NSString *getProductDetailsCb;
     NSString *makePurchaseCb;
     NSString *makePurchaseProductId;
+    NSString *applicationUsername;
     NSMutableArray *restorePurchaseCallbacks;
     NSMutableDictionary *refreshReceiptCallbacks;
 }
@@ -58,5 +59,6 @@ typedef int CDVWizPurchaseError;
 - (void)getPendingPurchases:(CDVInvokedUrlCommand *)command;
 - (void)restoreAllPurchases:(CDVInvokedUrlCommand *)command;
 - (void)refreshReceipt:(CDVInvokedUrlCommand *)command;
+- (void)setApplicationUsername:(CDVInvokedUrlCommand *)command;
 
 @end

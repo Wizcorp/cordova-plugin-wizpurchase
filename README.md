@@ -194,6 +194,15 @@ Refresh the receipt on iOS, do nothing on Android.
 - *Return* success
 - *Return* failure with error
 
+### setApplicationUsername(String applicationUsername, Function success, Function failure)
+
+On iOS, set the application username for all purchases following this call. More information [here](https://developer.apple.com/documentation/storekit/skmutablepayment/1506088-applicationusername).
+
+Do nothing on Android.
+
+- *Return* success
+- *Return* failure with error
+
 #### Security notes (Android)
 
 *** You (the developer) should verify that the orderId is a unique value that you have not previously processed, and the developerPayload string matches the token that you sent previously with the purchase request. As a further security precaution, you should perform the verification on your own secure server. ***
