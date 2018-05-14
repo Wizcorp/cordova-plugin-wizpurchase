@@ -46,13 +46,13 @@
 	<platform name="android">
 		<preference name="BILLING_KEY" />
 
-		<config-file target="res/xml/config.xml" parent="/*">
+		<config-file target="app/src/main/res/xml/config.xml" parent="/*">
 			<feature name="WizPurchase">
 				<param name="android-package" value="jp.wizcorp.wizpurchase.WizPurchase" />
 			</feature>
 		</config-file>
 
-		<config-file target="AndroidManifest.xml" parent="/manifest">
+		<config-file target="app/src/main/AndroidManifest.xml" parent="/manifest">
 			<uses-permission android:name="com.android.vending.BILLING" />
 		</config-file>
 
@@ -71,11 +71,11 @@
 		<source-file src="src/android/com/smartmobilesoftware/util/SkuDetails.java" target-dir="src/com/smartmobilesoftware/util" />
 
 		<!-- Billing Classes -->
-		<source-file src="src/android/com/android/vending/billing/IInAppBillingService.aidl" target-dir="src/com/android/vending/billing" />
+		<source-file src="src/android/com/android/vending/billing/IInAppBillingService.aidl" target-dir="app/src/main/aidl/com/android/vending/billing" />
 
 		<!-- Billing Key String Holder -->
 		<resource-file src="src/android/res/values/billing_key.xml" target="res/values/billing_key.xml" />
-		<config-file target="res/values/billing_key.xml" parent="/*">
+		<config-file target="app/src/main/res/values/billing_key.xml" parent="/*">
 			<string name="billing_key">$BILLING_KEY</string>
 		</config-file>
 	</platform>
