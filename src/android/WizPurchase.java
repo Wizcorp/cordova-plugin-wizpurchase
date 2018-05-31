@@ -875,6 +875,7 @@ public class WizPurchase extends CordovaPlugin {
 		else if (error == -1008) errorCode = UNKNOWN_ERROR;
 		else if (error == -1009) errorCode = NO_SUBSCRIPTIONS;
 		else if (error == -1010) errorCode = INVALID_CONSUMPTION;
+		else if (error == -1011) errorCode = INVALID_TRANSACTION_STATE;
 		else if (error == 1)     errorCode = USER_CANCELLED;
 		else if (error == 2)     errorCode = UNKNOWN_ERROR;
 		else if (error == 3)     errorCode = CANNOT_PURCHASE;
