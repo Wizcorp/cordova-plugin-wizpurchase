@@ -448,7 +448,7 @@ public class WizPurchase extends CordovaPlugin {
 			Log.w(TAG, "IllegalStateException while launching purchase flow for sku " + sku, e);
 
 			result = new IabResult(CONFLICTED_ASYNC_OPERATION, "Async operation already in progress");
-			if (mPurchaseFinishedListener != null) mPurchaseFinishedListener.onIabPurchaseFinished(result, null);
+			mPurchaseFinishedListener.onIabPurchaseFinished(result, null);
 		}
 
 	}
