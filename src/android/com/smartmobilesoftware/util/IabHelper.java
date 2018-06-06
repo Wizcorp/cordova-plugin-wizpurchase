@@ -129,7 +129,6 @@ public class IabHelper {
     public static final int IABHELPER_UNKNOWN_ERROR = -1008;
     public static final int IABHELPER_SUBSCRIPTIONS_NOT_AVAILABLE = -1009;
     public static final int IABHELPER_INVALID_CONSUMPTION = -1010;
-    public static final int IABHELPER_OPERATION_IN_PROGRESS = -1011;
 
     // Keys for the responses from InAppBillingService
     public static final String RESPONSE_CODE = "RESPONSE_CODE";
@@ -371,19 +370,8 @@ public class IabHelper {
                         OnIabPurchaseFinishedListener listener, String extraData) {
         checkNotDisposed();
         checkSetupDone("launchPurchaseFlow");
-
+        flagStartAsync("launchPurchaseFlow");
         IabResult result;
-        try {
-            flagStartAsync("launchPurchaseFlow");
-        }
-        catch (IllegalStateException e) {
-            logWarn("IllegalStateException while launching purchase flow for sku " + sku);
-            e.printStackTrace();
-
-            result = new IabResult(IABHELPER_OPERATION_IN_PROGRESS, "Async operation already in progress");
-            if (listener != null) listener.onIabPurchaseFinished(result, null);
-            return;
-        }
 
         if (itemType.equals(ITEM_TYPE_SUBS) && !mSubscriptionsSupported) {
             IabResult r = new IabResult(IABHELPER_SUBSCRIPTIONS_NOT_AVAILABLE,

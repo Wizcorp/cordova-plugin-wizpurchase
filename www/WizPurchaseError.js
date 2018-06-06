@@ -54,5 +54,6 @@ WizPurchaseError.INVALID_CLIENT = 22;
 WizPurchaseError.INVALID_PAYMENT = 23;
 WizPurchaseError.UNAUTHORIZED = 24;
 WizPurchaseError.RECEIPT_REFRESH_FAILED = 25;
+WizPurchaseError.CONFLICTED_ASYNC_OPERATION = 26;
 
 module.exports = WizPurchaseError;

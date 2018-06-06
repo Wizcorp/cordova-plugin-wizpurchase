@@ -93,6 +93,7 @@ public class WizPurchase extends CordovaPlugin {
 	private static final int INVALID_PAYMENT = 23;
 	private static final int UNAUTHORIZED = 24;
 	private static final int RECEIPT_REFRESH_FAILED = 25;
+	private static final int CONFLICTED_ASYNC_OPERATION = 26;
 
 	// =================================================================================================
 	//	Override Plugin Methods
@@ -402,10 +403,26 @@ public class WizPurchase extends CordovaPlugin {
 				// Hooray, IAB is fully set up. Now, let's get an inventory of stuff we own.
 				if (skus.size() <= 0){
 					Log.d(TAG, "Setup successful. Querying inventory.");
-					mHelper.queryInventoryAsync(mGotInventoryListener);
+					try {
+						mHelper.queryInventoryAsync(mGotInventoryListener);
+					}
+					catch (IllegalStateException e) {
+						Log.w(TAG, "IllegalStateException while getting inventory", e);
+
+						result = new IabResult(CONFLICTED_ASYNC_OPERATION, "Async operation already in progress");
+						mGotInventoryListener.onQueryInventoryFinished(result, null);
+					}
 				} else {
 					Log.d(TAG, "Setup successful. Querying inventory w/ SKUs. " + skus.toString());
-					mHelper.queryInventoryAsync(true, skus, mGotDetailsListener);
+					try {
+						mHelper.queryInventoryAsync(true, skus, mGotDetailsListener);
+					}
+					catch (IllegalStateException e) {
+						Log.w(TAG, "IllegalStateException while getting details on list of skus " + skus.toString(), e);
+
+						result = new IabResult(CONFLICTED_ASYNC_OPERATION, "Async operation already in progress");
+						mGotDetailsListener.onQueryInventoryFinished(result, null);
+					}
 				}
 			}
 		});
@@ -419,12 +436,21 @@ public class WizPurchase extends CordovaPlugin {
 	private void buy(final String sku) {
 		setStartedPurchase(sku, true);
 		// Process the purchase for the given product id and developerPayload
-		mHelper.launchPurchaseFlow(
-				cordova.getActivity(),
-				sku,
-				RC_REQUEST,
-				mPurchaseFinishedListener,
-				mDevPayload);
+		try {
+			mHelper.launchPurchaseFlow(
+					cordova.getActivity(),
+					sku,
+					RC_REQUEST,
+					mPurchaseFinishedListener,
+					mDevPayload);
+		}
+		catch (IllegalStateException e) {
+			Log.w(TAG, "IllegalStateException while launching purchase flow for sku " + sku, e);
+
+			result = new IabResult(CONFLICTED_ASYNC_OPERATION, "Async operation already in progress");
+			if (mPurchaseFinishedListener != null) mPurchaseFinishedListener.onIabPurchaseFinished(result, null);
+		}
+
 	}
 
 	/**
@@ -460,7 +486,15 @@ public class WizPurchase extends CordovaPlugin {
 
 		if (isConsumable) {
 			// Process the consumption asynchronously
-			mHelper.consumeAsync(purchase, mConsumeFinishedListener);
+			try {
+				mHelper.consumeAsync(purchase, mConsumeFinishedListener);
+			}
+			catch (IllegalStateException e) {
+				Log.w(TAG, "IllegalStateException while consuming purchase " + purchase.toString(), e);
+
+				result = new IabResult(CONFLICTED_ASYNC_OPERATION, "Async operation already in progress");
+				mConsumeFinishedListener.onConsumeFinished(purchase, result);
+			}
 		} else {
 			unsetPurchaseAsPending(purchase);
 			mFinishPurchaseCbContext.success();
@@ -589,7 +623,15 @@ public class WizPurchase extends CordovaPlugin {
 	 **/
 	private void getSkuDetails(final List<String> skus){
 		Log.d(TAG, "Querying inventory w/ SKUs.");
-		mHelper.queryInventoryAsync(true, skus, mGotDetailsListener);
+		try {
+			mHelper.queryInventoryAsync(true, skus, mGotDetailsListener);
+		}
+		catch (IllegalStateException e) {
+			Log.w(TAG, "IllegalStateException while getting details on list of skus", e);
+
+			result = new IabResult(CONFLICTED_ASYNC_OPERATION, "Async operation already in progress");
+			mGotDetailsListener.onQueryInventoryFinished(result, null);
+		}
 	}
 
 	// =================================================================================================
@@ -875,7 +917,6 @@ public class WizPurchase extends CordovaPlugin {
 		else if (error == -1008) errorCode = UNKNOWN_ERROR;
 		else if (error == -1009) errorCode = NO_SUBSCRIPTIONS;
 		else if (error == -1010) errorCode = INVALID_CONSUMPTION;
-		else if (error == -1011) errorCode = INVALID_TRANSACTION_STATE;
 		else if (error == 1)     errorCode = USER_CANCELLED;
 		else if (error == 2)     errorCode = UNKNOWN_ERROR;
 		else if (error == 3)     errorCode = CANNOT_PURCHASE;
