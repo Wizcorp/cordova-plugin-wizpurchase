@@ -36,7 +36,8 @@ enum CDVWizPurchaseError {
     INVALID_CLIENT = 22,
     INVALID_PAYMENT = 23,
     UNAUTHORIZED = 24,
-    RECEIPT_REFRESH_FAILED = 25
+    RECEIPT_REFRESH_FAILED = 25,
+    CONFLICTED_ASYNC_OPERATION = 26
 };
 typedef int CDVWizPurchaseError;
 

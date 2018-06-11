@@ -238,6 +238,7 @@ Failure callbacks return an error as an integer. See the following error table:
 |   23 | `INVALID_PAYMENT`           | Indicates that one of the payment parameters was not recognized                                        |
 |   24 | `UNAUTHORIZED`              | Indicates that the user is not allowed to authorise payments (e.g. parental lock)                      |
 |   25 | `RECEIPT_REFRESH_FAILED`    |                                                                                                        |
+|   26 | `CONFLICTED_ASYNC_OPERATION`| Asynchronous calls cannot be run in parallel                                                                                                       |
 
 ======
 Ref Links
